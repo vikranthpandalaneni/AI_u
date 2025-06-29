@@ -1,7 +1,7 @@
 // FIXED: Updated auth store to use the new useAuth hook pattern
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { auth, db, type User } from '../lib/supabase'
+import { supabase, db, type User } from '../lib/supabase'
 
 interface AuthState {
   user: User | null
@@ -31,7 +31,10 @@ export const useAuthStore = create<AuthState>()(
       signIn: async (email: string, password: string) => {
         set({ loading: true, error: null })
         try {
-          const { data, error } = await auth.signIn(email, password)
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          })
           
           if (error) {
             set({ loading: false, error: error.message })
@@ -88,7 +91,13 @@ export const useAuthStore = create<AuthState>()(
       signUp: async (email: string, password: string, metadata = {}) => {
         set({ loading: true, error: null })
         try {
-          const { data, error } = await auth.signUp(email, password, metadata)
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: metadata
+            }
+          })
           
           if (error) {
             set({ loading: false, error: error.message })
@@ -129,7 +138,7 @@ export const useAuthStore = create<AuthState>()(
       signOut: async () => {
         set({ loading: true, error: null })
         try {
-          await auth.signOut()
+          await supabase.auth.signOut()
           set({ 
             user: null, 
             session: null, 
@@ -198,7 +207,7 @@ export const useAuthStore = create<AuthState>()(
 )
 
 // Initialize auth state
-auth.onAuthStateChange(async (event, session) => {
+supabase.auth.onAuthStateChange(async (event, session) => {
   const { setUser, setSession, setLoading, setError } = useAuthStore.getState()
   
   setLoading(true)
