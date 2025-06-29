@@ -106,6 +106,17 @@ export interface MemeEntry {
   created_at: string
 }
 
+export interface UserFile {
+  id: string
+  name: string
+  bucket_id: string
+  owner: string
+  created_at: string
+  updated_at: string
+  last_accessed_at: string
+  metadata: Record<string, any>
+}
+
 // Database helpers with better error handling
 export const db = {
   // Users
@@ -340,6 +351,36 @@ export const storage = {
         .remove([path])
     } catch (error) {
       console.error('Delete file error:', error)
+      throw error
+    }
+  },
+
+  listFiles: async (bucket: string, path?: string) => {
+    try {
+      return await supabase.storage
+        .from(bucket)
+        .list(path || '', {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' }
+        })
+    } catch (error) {
+      console.error('List files error:', error)
+      throw error
+    }
+  },
+
+  getUserFiles: async (userId: string) => {
+    try {
+      return await supabase.storage
+        .from('user-files')
+        .list(userId, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' }
+        })
+    } catch (error) {
+      console.error('Get user files error:', error)
       throw error
     }
   }
