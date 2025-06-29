@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import { generateSlug } from '../lib/utils'
 import {
@@ -58,7 +58,7 @@ const COLOR_THEMES = [
 
 export function CreateWorldPage() {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const { createWorld, loading } = useWorldStore()
   
   const [currentStep, setCurrentStep] = useState(1)
@@ -123,7 +123,10 @@ export function CreateWorldPage() {
   }
 
   const handleDeploy = async () => {
-    if (!user) return
+    if (!user) {
+      console.error('No user found - cannot deploy world')
+      return
+    }
 
     try {
       const result = await createWorld({
@@ -133,6 +136,8 @@ export function CreateWorldPage() {
 
       if (result.data) {
         navigate(`/w/${result.data.slug}`)
+      } else if (result.error) {
+        console.error('Failed to create world:', result.error)
       }
     } catch (error) {
       console.error('Failed to create world:', error)
@@ -740,7 +745,7 @@ export function CreateWorldPage() {
           ) : (
             <Button
               onClick={handleDeploy}
-              disabled={loading || !worldData.title}
+              disabled={loading || !worldData.title || !user}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
               {loading ? (
