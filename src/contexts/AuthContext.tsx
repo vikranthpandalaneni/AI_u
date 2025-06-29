@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getInitialSession()
 
-    // Listen for auth changes
+    // Listen for auth changes - THIS IS THE ONLY AUTH LISTENER IN THE APP
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)

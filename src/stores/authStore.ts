@@ -1,16 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// This store is deprecated in favor of AuthContext.tsx
-// Keeping minimal interface for backward compatibility during transition
+// DEPRECATED: This store is being phased out in favor of AuthContext.tsx
+// Use useAuth() hook from AuthContext instead of this store
+
 interface AuthState {
-  // Deprecated - use useAuth() hook instead
+  // Legacy state - DO NOT USE - Use useAuth() hook instead
   user: any | null
   session: any
   loading: boolean
   error: string | null
   
-  // Deprecated methods - use AuthContext methods instead
+  // Legacy methods - DO NOT USE - Use AuthContext methods instead
   setUser: (user: any | null) => void
   setSession: (session: any) => void
   setLoading: (loading: boolean) => void
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       loading: true,
       error: null,
 
+      // These methods are deprecated - use AuthContext instead
       setUser: (user: any | null) => set({ user }),
       setSession: (session: any) => set({ session }),
       setLoading: (loading: boolean) => set({ loading }),
@@ -33,14 +35,12 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null })
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({ 
-        user: state.user,
-        session: state.session 
-      })
+      name: 'auth-storage-deprecated',
+      partialize: () => ({}) // Don't persist anything - AuthContext handles persistence
     }
   )
 )
 
-// Note: This store is deprecated. Use useAuth() hook from AuthContext instead.
+// WARNING: This store is deprecated and will be removed
+// Use useAuth() hook from AuthContext.tsx instead
 // All authentication logic has been centralized in AuthContext.tsx

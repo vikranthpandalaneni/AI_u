@@ -1,4 +1,3 @@
-// CREATED: Settings page with profile edit, plan management, theme toggle, and password reset
 import React, { useState } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/button'
@@ -45,8 +44,9 @@ export function SettingsPage() {
     
     setLoading(true)
     try {
-      // TODO: Implement profile update logic
+      // TODO: Implement profile update logic with Supabase
       console.log('Profile update:', profileData)
+      // This would typically update the user metadata in Supabase
     } catch (error) {
       console.error('Failed to update profile:', error)
     } finally {
