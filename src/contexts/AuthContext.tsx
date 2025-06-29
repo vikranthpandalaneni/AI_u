@@ -40,6 +40,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setSession(session)
           setUser(session?.user ?? null)
+          
+          // Ensure user profile exists for initial session
+          if (session?.user) {
+            await createUserProfile(session.user)
+          }
         }
       } catch (err: any) {
         console.error('Session error:', err)
@@ -60,8 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false)
         setError(null)
 
-        // Handle user profile creation on sign up
-        if (event === 'SIGNED_UP' && session?.user) {
+        // Handle user profile creation for all events where user is present
+        if (session?.user && (event === 'SIGNED_UP' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
           await createUserProfile(session.user)
         }
       }
