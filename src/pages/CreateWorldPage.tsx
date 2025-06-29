@@ -42,11 +42,6 @@ const STEPS = [
   { id: 6, title: 'Deploy', description: 'Launch your world' }
 ]
 
-const CATEGORIES = [
-  'Business', 'Education', 'Entertainment', 'Health & Wellness', 
-  'Technology', 'Art & Design', 'Gaming', 'Social', 'Other'
-]
-
 const COLOR_THEMES = [
   { name: 'Purple', value: 'purple', color: 'bg-purple-500' },
   { name: 'Blue', value: 'blue', color: 'bg-blue-500' },
@@ -65,7 +60,6 @@ export function CreateWorldPage() {
   const [worldData, setWorldData] = useState({
     title: '',
     description: '',
-    category: '',
     slug: '',
     theme: {
       color: 'blue',
@@ -167,22 +161,6 @@ export function CreateWorldPage() {
                 placeholder="Describe what makes your world special..."
                 className="w-full p-3 border rounded-md resize-none h-24"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Category</label>
-              <div className="grid grid-cols-3 gap-2">
-                {CATEGORIES.map((category) => (
-                  <Button
-                    key={category}
-                    variant={worldData.category === category ? 'default' : 'outline'}
-                    onClick={() => setWorldData(prev => ({ ...prev, category }))}
-                    className="text-sm"
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
             </div>
 
             <div>
@@ -590,7 +568,6 @@ export function CreateWorldPage() {
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">{worldData.category}</Badge>
                   <Badge variant="outline">{worldData.theme.color} theme</Badge>
                   <Badge variant="outline">{worldData.public ? 'Public' : 'Private'}</Badge>
                   {worldData.pricing.premium && (
@@ -737,7 +714,7 @@ export function CreateWorldPage() {
           {currentStep < STEPS.length ? (
             <Button
               onClick={handleNext}
-              disabled={!worldData.title || !worldData.category}
+              disabled={!worldData.title}
             >
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
