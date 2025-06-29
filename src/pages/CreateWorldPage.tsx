@@ -123,10 +123,19 @@ export function CreateWorldPage() {
     }
 
     try {
-      const result = await createWorld({
-        ...worldData,
+      // Extract pricing from worldData and include it in features
+      const { pricing, ...restWorldData } = worldData
+      
+      const worldToCreate = {
+        ...restWorldData,
+        features: {
+          ...worldData.features,
+          pricing: pricing
+        },
         user_id: user.id
-      })
+      }
+
+      const result = await createWorld(worldToCreate)
 
       if (result.data) {
         navigate(`/w/${result.data.slug}`)
