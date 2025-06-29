@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { useThemeStore } from '../stores/themeStore'
 import { getInitials } from '../lib/utils'
 import {
@@ -26,13 +26,13 @@ import {
 } from 'lucide-react'
 
 export function SettingsPage() {
-  const { user, updateProfile } = useAuthStore()
+  const { user } = useAuth()
   const { theme, setTheme } = useThemeStore()
   const [loading, setLoading] = useState(false)
   const [profileData, setProfileData] = useState({
-    name: user?.name || '',
+    name: user?.user_metadata?.name || '',
     email: user?.email || '',
-    avatar_url: user?.avatar_url || ''
+    avatar_url: user?.user_metadata?.avatar_url || ''
   })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -45,10 +45,8 @@ export function SettingsPage() {
     
     setLoading(true)
     try {
-      await updateProfile({
-        name: profileData.name,
-        avatar_url: profileData.avatar_url
-      })
+      // TODO: Implement profile update logic
+      console.log('Profile update:', profileData)
     } catch (error) {
       console.error('Failed to update profile:', error)
     } finally {
@@ -297,22 +295,22 @@ export function SettingsPage() {
                 <CardContent>
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-3">
-                      {user?.plan === 'pro' ? (
+                      {user?.user_metadata?.plan === 'pro' ? (
                         <Crown className="w-5 h-5 text-yellow-500" />
                       ) : (
                         <Shield className="w-5 h-5 text-blue-500" />
                       )}
                       <div>
-                        <p className="font-medium capitalize">{user?.plan || 'Free'} Plan</p>
+                        <p className="font-medium capitalize">{user?.user_metadata?.plan || 'Free'} Plan</p>
                         <p className="text-sm text-muted-foreground">
-                          {user?.plan === 'pro' 
+                          {user?.user_metadata?.plan === 'pro' 
                             ? 'Unlimited worlds and premium features'
                             : 'Basic features with limited worlds'
                           }
                         </p>
                       </div>
                     </div>
-                    {user?.plan === 'free' && (
+                    {user?.user_metadata?.plan === 'free' && (
                       <Button>
                         <Crown className="w-4 h-4 mr-2" />
                         Upgrade to Pro

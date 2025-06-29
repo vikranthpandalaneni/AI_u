@@ -93,24 +93,17 @@ export function AuthPage() {
         
         if (!result.error) {
           setSuccessMessage('Account created successfully! Welcome to AI Universe.')
-          // Small delay to show success message before redirect
-          setTimeout(() => {
-            const from = location.state?.from?.pathname || '/dashboard'
-            navigate(from, { replace: true })
-          }, 1500)
         }
       } else {
         result = await signIn(formData.email, formData.password)
         
         if (!result.error) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
-          // Small delay to show success message before redirect
-          setTimeout(() => {
-            const from = location.state?.from?.pathname || '/dashboard'
-            navigate(from, { replace: true })
-          }, 1000)
         }
       }
+      
+      // Note: Navigation will be handled automatically by the useEffect hook
+      // when the auth state changes and user becomes available
     } catch (error) {
       console.error('Unexpected auth error:', error)
     } finally {
