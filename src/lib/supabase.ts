@@ -38,6 +38,11 @@ export interface AIWorld {
     mode: 'light' | 'dark'
   }
   features: Record<string, any>
+  pricing?: {
+    free: boolean
+    premium: boolean
+    price: number
+  }
   public: boolean
   created_at: string
   updated_at: string
@@ -213,7 +218,10 @@ export const db = {
   // Events
   getEvents: async (worldId?: string) => {
     try {
-      let query = supabase.from('world_events').select('*')
+      let query = supabase.from('world_events').select(`
+        *,
+        ai_worlds!inner(title, user_id)
+      `)
       
       if (worldId) {
         query = query.eq('world_id', worldId)
@@ -231,10 +239,42 @@ export const db = {
       return await supabase
         .from('world_events')
         .insert(event)
-        .select()
+        .select(`
+          *,
+          ai_worlds!inner(title, user_id)
+        `)
         .single()
     } catch (error) {
       console.error('Create event error:', error)
+      throw error
+    }
+  },
+
+  updateEvent: async (id: string, updates: Partial<WorldEvent>) => {
+    try {
+      return await supabase
+        .from('world_events')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          *,
+          ai_worlds!inner(title, user_id)
+        `)
+        .single()
+    } catch (error) {
+      console.error('Update event error:', error)
+      throw error
+    }
+  },
+
+  deleteEvent: async (id: string) => {
+    try {
+      return await supabase
+        .from('world_events')
+        .delete()
+        .eq('id', id)
+    } catch (error) {
+      console.error('Delete event error:', error)
       throw error
     }
   },

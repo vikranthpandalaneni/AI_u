@@ -1,11 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Textarea } from '../components/ui/textarea'
+import { useAuth } from '../contexts/AuthContext'
+import { useEventStore } from '../stores/eventStore'
+import { useWorldStore } from '../stores/worldStore'
 import {
   Calendar,
   Clock,
@@ -20,87 +26,10 @@ import {
   Star,
   ExternalLink,
   Ticket,
-  Coffee
+  Coffee,
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
-
-// Mock events data
-const MOCK_EVENTS = [
-  {
-    id: '1',
-    title: 'AI World Building Workshop',
-    description: 'Learn how to create engaging AI-powered experiences with our expert team. Perfect for beginners and advanced creators.',
-    type: 'workshop',
-    startTime: '2024-02-15T18:00:00Z',
-    endTime: '2024-02-15T20:00:00Z',
-    ticketPrice: 0,
-    attendees: 156,
-    maxAttendees: 200,
-    host: 'AI Universe Team',
-    worldTitle: 'AI Universe Academy',
-    features: ['video', 'chat', 'screen-share'],
-    status: 'upcoming'
-  },
-  {
-    id: '2',
-    title: 'Crypto & NFT Integration Masterclass',
-    description: 'Deep dive into blockchain integration for AI worlds. Learn about NFT minting, crypto payments, and DeFi features.',
-    type: 'conference',
-    startTime: '2024-02-18T16:00:00Z',
-    endTime: '2024-02-18T18:30:00Z',
-    ticketPrice: 29.99,
-    attendees: 89,
-    maxAttendees: 150,
-    host: 'CryptoWiz',
-    worldTitle: 'Blockchain Academy',
-    features: ['video', 'chat', 'nft-rewards'],
-    status: 'upcoming'
-  },
-  {
-    id: '3',
-    title: 'Voice AI Demo & Q&A',
-    description: 'Experience the latest in voice AI technology and ask questions to our development team.',
-    type: 'meetup',
-    startTime: '2024-02-20T19:00:00Z',
-    endTime: '2024-02-20T20:30:00Z',
-    ticketPrice: 0,
-    attendees: 234,
-    maxAttendees: 300,
-    host: 'VoiceAI Labs',
-    worldTitle: 'Voice AI Playground',
-    features: ['voice', 'chat'],
-    status: 'upcoming'
-  },
-  {
-    id: '4',
-    title: 'Community Showcase',
-    description: 'Creators present their amazing AI worlds and share their building journey with the community.',
-    type: 'meetup',
-    startTime: '2024-02-12T17:00:00Z',
-    endTime: '2024-02-12T19:00:00Z',
-    ticketPrice: 0,
-    attendees: 312,
-    maxAttendees: 300,
-    host: 'Community Team',
-    worldTitle: 'AI Universe Hub',
-    features: ['video', 'chat', 'screen-share'],
-    status: 'completed'
-  },
-  {
-    id: '5',
-    title: 'Meditation & Mindfulness Session',
-    description: 'Join our weekly guided meditation session with AI-powered ambient sounds and personalized guidance.',
-    type: 'workshop',
-    startTime: '2024-02-22T20:00:00Z',
-    endTime: '2024-02-22T21:00:00Z',
-    ticketPrice: 9.99,
-    attendees: 67,
-    maxAttendees: 100,
-    host: 'ZenMaster',
-    worldTitle: 'Meditation & Mindfulness',
-    features: ['voice', 'ambient-sounds'],
-    status: 'upcoming'
-  }
-]
 
 const EVENT_TYPES = [
   { id: 'all', label: 'All Events', icon: Calendar },
@@ -110,19 +39,49 @@ const EVENT_TYPES = [
 ]
 
 export function EventsPage() {
+  const { user } = useAuth()
+  const { events, loading, error, fetchEvents, createEvent, clearError } = useEventStore()
+  const { worlds, fetchWorlds } = useWorldStore()
+  
   const [selectedType, setSelectedType] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    world_id: '',
+    event_type: 'meetup' as 'meetup' | 'workshop' | 'conference',
+    start_time: '',
+    end_time: '',
+    ticket_price: 0
+  })
 
-  const filteredEvents = MOCK_EVENTS.filter(event => {
-    const matchesType = selectedType === 'all' || event.type === selectedType
+  useEffect(() => {
+    fetchEvents()
+    if (user) {
+      fetchWorlds(user.id)
+    }
+  }, [user, fetchEvents, fetchWorlds])
+
+  const filteredEvents = events.filter(event => {
+    const matchesType = selectedType === 'all' || event.event_type === selectedType
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase())
+                         event.description?.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesType && matchesSearch
   })
 
-  const upcomingEvents = filteredEvents.filter(event => event.status === 'upcoming')
-  const pastEvents = filteredEvents.filter(event => event.status === 'completed')
+  const upcomingEvents = filteredEvents.filter(event => {
+    if (!event.start_time) return true
+    return new Date(event.start_time) > new Date()
+  })
+  
+  const pastEvents = filteredEvents.filter(event => {
+    if (!event.start_time) return false
+    return new Date(event.start_time) <= new Date()
+  })
 
   const formatEventTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -149,10 +108,47 @@ export function EventsPage() {
     }
   }
 
-  const EventCard = ({ event }: { event: typeof MOCK_EVENTS[0] }) => {
-    const { date, time } = formatEventTime(event.startTime)
-    const isUpcoming = event.status === 'upcoming'
-    const isFull = event.attendees >= event.maxAttendees
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!user || !formData.world_id || !formData.title) {
+      return
+    }
+
+    setIsSubmitting(true)
+    clearError()
+
+    try {
+      const eventData = {
+        ...formData,
+        start_time: formData.start_time ? new Date(formData.start_time).toISOString() : undefined,
+        end_time: formData.end_time ? new Date(formData.end_time).toISOString() : undefined,
+      }
+
+      const result = await createEvent(eventData)
+      
+      if (!result.error) {
+        setShowCreateDialog(false)
+        setFormData({
+          title: '',
+          description: '',
+          world_id: '',
+          event_type: 'meetup',
+          start_time: '',
+          end_time: '',
+          ticket_price: 0
+        })
+      }
+    } catch (error) {
+      console.error('Failed to create event:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const EventCard = ({ event }: { event: typeof events[0] }) => {
+    const isUpcoming = event.start_time ? new Date(event.start_time) > new Date() : true
+    const timeData = event.start_time ? formatEventTime(event.start_time) : null
 
     return (
       <Card className="group hover:shadow-lg transition-all">
@@ -160,86 +156,61 @@ export function EventsPage() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-3 h-3 rounded-full ${getEventTypeColor(event.type)}`} />
-                <Badge variant="outline" className="text-xs">
-                  {event.type}
+                <div className={`w-3 h-3 rounded-full ${getEventTypeColor(event.event_type)}`} />
+                <Badge variant="outline" className="text-xs capitalize">
+                  {event.event_type}
                 </Badge>
-                {event.ticketPrice > 0 && (
+                {event.ticket_price > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    ${event.ticketPrice}
+                    ${event.ticket_price}
                   </Badge>
                 )}
-                {event.ticketPrice === 0 && (
+                {event.ticket_price === 0 && (
                   <Badge variant="outline" className="text-xs text-green-600">
                     Free
                   </Badge>
                 )}
               </div>
               <CardTitle className="text-lg mb-2">{event.title}</CardTitle>
-              <CardDescription className="line-clamp-2">
-                {event.description}
-              </CardDescription>
+              {event.description && (
+                <CardDescription className="line-clamp-2">
+                  {event.description}
+                </CardDescription>
+              )}
             </div>
           </div>
         </CardHeader>
         
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {date}
+            {timeData && (
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {timeData.date}
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {timeData.time}
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {time}
-              </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                {event.attendees}/{event.maxAttendees}
-              </div>
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
-                {event.worldTitle}
+                {event.ai_worlds?.title || 'Unknown World'}
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {event.features.includes('video') && (
-                <Badge variant="outline" className="text-xs">
-                  <Video className="w-3 h-3 mr-1" />
-                  Video
-                </Badge>
-              )}
-              {event.features.includes('voice') && (
-                <Badge variant="outline" className="text-xs">
-                  <Mic className="w-3 h-3 mr-1" />
-                  Voice
-                </Badge>
-              )}
-              {event.features.includes('nft-rewards') && (
-                <Badge variant="outline" className="text-xs">
-                  <Star className="w-3 h-3 mr-1" />
-                  NFT Rewards
-                </Badge>
-              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-sm text-muted-foreground">
-                by {event.host}
+                {event.ai_worlds?.title}
               </span>
               
               {isUpcoming ? (
-                <Button 
-                  size="sm" 
-                  disabled={isFull}
-                  className={isFull ? 'opacity-50' : ''}
-                >
-                  {isFull ? 'Full' : event.ticketPrice > 0 ? 'Buy Ticket' : 'Join Free'}
+                <Button size="sm">
+                  {event.ticket_price > 0 ? 'Buy Ticket' : 'Join Free'}
                 </Button>
               ) : (
                 <Button size="sm" variant="outline">
@@ -273,42 +244,133 @@ export function EventsPage() {
                 Create Event
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Create New Event</DialogTitle>
                 <DialogDescription>
-                  Host a live event in your AI world
+                  Host a live event in one of your AI worlds
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Event Title</label>
-                  <Input placeholder="My Amazing Event" />
+              
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Description</label>
-                  <textarea 
-                    className="w-full p-3 border rounded-md resize-none h-24"
-                    placeholder="Describe your event..."
+              )}
+
+              <form onSubmit={handleCreateEvent} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Event Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="My Amazing Event"
+                    required
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe your event..."
+                    className="resize-none h-20"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="world">AI World *</Label>
+                  <Select 
+                    value={formData.world_id} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, world_id: value }))}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a world" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {worlds.map((world) => (
+                        <SelectItem key={world.id} value={world.id}>
+                          {world.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="event_type">Event Type</Label>
+                  <Select 
+                    value={formData.event_type} 
+                    onValueChange={(value: 'meetup' | 'workshop' | 'conference') => 
+                      setFormData(prev => ({ ...prev, event_type: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="meetup">Meetup</SelectItem>
+                      <SelectItem value="workshop">Workshop</SelectItem>
+                      <SelectItem value="conference">Conference</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Date</label>
-                    <Input type="date" />
+                  <div className="space-y-2">
+                    <Label htmlFor="start_time">Start Date & Time</Label>
+                    <Input
+                      id="start_time"
+                      type="datetime-local"
+                      value={formData.start_time}
+                      onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                    />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Time</label>
-                    <Input type="time" />
+                  <div className="space-y-2">
+                    <Label htmlFor="end_time">End Date & Time</Label>
+                    <Input
+                      id="end_time"
+                      type="datetime-local"
+                      value={formData.end_time}
+                      onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-3">
-                  <Button className="flex-1">Create Event</Button>
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ticket_price">Ticket Price ($)</Label>
+                  <Input
+                    id="ticket_price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.ticket_price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ticket_price: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button type="submit" className="flex-1" disabled={isSubmitting || !formData.title || !formData.world_id}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Event'
+                    )}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
                     Cancel
                   </Button>
                 </div>
-              </div>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -353,22 +415,22 @@ export function EventsPage() {
           <Card>
             <CardContent className="p-6 text-center">
               <Users className="w-8 h-8 mx-auto mb-2 text-green-500" />
-              <div className="text-2xl font-bold">2.4K</div>
-              <div className="text-sm text-muted-foreground">Total Attendees</div>
+              <div className="text-2xl font-bold">{events.length}</div>
+              <div className="text-sm text-muted-foreground">Total Events</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <Globe className="w-8 h-8 mx-auto mb-2 text-purple-500" />
-              <div className="text-2xl font-bold">45</div>
+              <div className="text-2xl font-bold">{worlds.length}</div>
               <div className="text-sm text-muted-foreground">Active Worlds</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <Ticket className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-              <div className="text-2xl font-bold">156</div>
-              <div className="text-sm text-muted-foreground">Events This Month</div>
+              <div className="text-2xl font-bold">{pastEvents.length}</div>
+              <div className="text-sm text-muted-foreground">Past Events</div>
             </CardContent>
           </Card>
         </div>
@@ -385,7 +447,22 @@ export function EventsPage() {
           </TabsList>
 
           <TabsContent value="upcoming" className="space-y-6">
-            {upcomingEvents.length > 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-4 bg-muted rounded mb-2" />
+                      <div className="h-6 bg-muted rounded mb-2" />
+                      <div className="h-4 bg-muted rounded" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-20 bg-muted rounded" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : upcomingEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {upcomingEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
@@ -428,38 +505,6 @@ export function EventsPage() {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* Featured Event */}
-        <Card className="mt-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-          <CardContent className="p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <Badge className="bg-white/20 text-white mb-4">Featured Event</Badge>
-                <h3 className="text-2xl font-bold mb-2">AI Universe Annual Conference 2024</h3>
-                <p className="text-purple-100 mb-4">
-                  Join us for the biggest AI world building event of the year. 
-                  3 days of workshops, demos, and networking.
-                </p>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    March 15-17, 2024
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    1000+ Expected
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold mb-2">$99</div>
-                <Button size="lg" variant="secondary">
-                  Get Early Bird Tickets
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   )
