@@ -8,12 +8,13 @@ import { CreateWorldPage } from './pages/CreateWorldPage'
 import { WorldViewPage } from './pages/WorldViewPage'
 import { ExplorePage } from './pages/ExplorePage'
 import { EventsPage } from './pages/EventsPage'
+import { AnalyticsPage } from './pages/AnalyticsPage'
+import { CommunityPage } from './pages/CommunityPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { LoadingSpinner } from './components/LoadingSpinner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { useAuth } from './contexts/AuthContext'
 
 // App content component that uses auth context
 function AppContent() {
@@ -34,6 +35,16 @@ function AppContent() {
       <Route path="/create-world" element={
         <ProtectedRoute>
           <CreateWorldPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <AnalyticsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/community" element={
+        <ProtectedRoute>
+          <CommunityPage />
         </ProtectedRoute>
       } />
       <Route path="/settings" element={
