@@ -19,7 +19,6 @@ import {
   MapPin,
   Plus,
   Search,
-  Filter,
   Video,
   Mic,
   Globe,

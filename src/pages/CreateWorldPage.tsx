@@ -6,7 +6,6 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import { generateSlug } from '../lib/utils'
@@ -27,10 +26,9 @@ import {
   Calendar,
   Languages,
   Share2,
-  DollarSign,
-  Zap,
   Eye,
-  EyeOff
+  EyeOff,
+  Loader2
 } from 'lucide-react'
 
 const STEPS = [
@@ -106,7 +104,7 @@ export function CreateWorldPage() {
     }))
   }
 
-  const handleFeatureToggle = (feature: string) => {
+  const handleFeatureToggle = (feature: keyof typeof worldData.features) => {
     setWorldData(prev => ({
       ...prev,
       features: {
@@ -123,27 +121,31 @@ export function CreateWorldPage() {
     }
 
     try {
-      // Extract pricing from worldData and include it in features
-      const { pricing, ...restWorldData } = worldData
-      
+      // Prepare data for insertion - serialize JSON objects properly
       const worldToCreate = {
-        ...restWorldData,
-        features: {
-          ...worldData.features,
-          pricing: pricing
-        },
-        user_id: user.id
+        user_id: user.id,
+        title: worldData.title,
+        description: worldData.description,
+        slug: worldData.slug,
+        domain: worldData.domain,
+        theme: worldData.theme, // Keep as object - Supabase will handle JSONB conversion
+        features: worldData.features, // Keep as object - Supabase will handle JSONB conversion
+        pricing: worldData.pricing, // Keep as object - Supabase will handle JSONB conversion
+        public: worldData.public
       }
+
+      console.log('Creating world with data:', worldToCreate)
 
       const result = await createWorld(worldToCreate)
 
       if (result.data) {
+        console.log('World created successfully:', result.data)
         navigate(`/w/${result.data.slug}`)
       } else if (result.error) {
         console.error('Failed to create world:', result.error)
       }
     } catch (error) {
-      console.error('Failed to create world:', error)
+      console.error('An unexpected error occurred during deployment:', error)
     }
   }
 
@@ -168,7 +170,7 @@ export function CreateWorldPage() {
                 value={worldData.description}
                 onChange={(e) => setWorldData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Describe what makes your world special..."
-                className="w-full p-3 border rounded-md resize-none h-24"
+                className="w-full p-3 border rounded-md resize-none h-24 bg-transparent"
               />
             </div>
 
@@ -263,20 +265,16 @@ export function CreateWorldPage() {
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className={`cursor-pointer transition-all ${worldData.features.chat ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.chat ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('chat')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MessageCircle className="w-5 h-5 text-blue-500" />
                       <CardTitle className="text-lg">AI Chat</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.chat ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('chat')}
-                    >
-                      {worldData.features.chat ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.chat ? 'default' : 'outline'}>
+                      {worldData.features.chat ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -286,20 +284,16 @@ export function CreateWorldPage() {
                 </CardContent>
               </Card>
 
-              <Card className={`cursor-pointer transition-all ${worldData.features.voice ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.voice ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('voice')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Mic className="w-5 h-5 text-green-500" />
                       <CardTitle className="text-lg">Voice AI</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.voice ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('voice')}
-                    >
-                      {worldData.features.voice ? 'Enabled' : 'Enable'}
-                    </Button>
+                     <Badge variant={worldData.features.voice ? 'default' : 'outline'}>
+                      {worldData.features.voice ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -309,20 +303,16 @@ export function CreateWorldPage() {
                 </CardContent>
               </Card>
 
-              <Card className={`cursor-pointer transition-all ${worldData.features.video ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.video ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('video')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Video className="w-5 h-5 text-purple-500" />
                       <CardTitle className="text-lg">Video Agents</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.video ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('video')}
-                    >
-                      {worldData.features.video ? 'Enabled' : 'Enable'}
-                    </Button>
+                     <Badge variant={worldData.features.video ? 'default' : 'outline'}>
+                      {worldData.features.video ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -356,20 +346,16 @@ export function CreateWorldPage() {
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className={`cursor-pointer transition-all ${worldData.features.nft ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.nft ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('nft')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-yellow-500" />
                       <CardTitle className="text-lg">NFT Identities</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.nft ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('nft')}
-                    >
-                      {worldData.features.nft ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.nft ? 'default' : 'outline'}>
+                      {worldData.features.nft ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -379,20 +365,16 @@ export function CreateWorldPage() {
                 </CardContent>
               </Card>
 
-              <Card className={`cursor-pointer transition-all ${worldData.features.crypto ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.crypto ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('crypto')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Coins className="w-5 h-5 text-green-500" />
                       <CardTitle className="text-lg">Crypto Payments</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.crypto ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('crypto')}
-                    >
-                      {worldData.features.crypto ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.crypto ? 'default' : 'outline'}>
+                      {worldData.features.crypto ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -410,6 +392,7 @@ export function CreateWorldPage() {
                   <input
                     type="radio"
                     id="free"
+                    name="pricingModel"
                     checked={worldData.pricing.free}
                     onChange={() => setWorldData(prev => ({
                       ...prev,
@@ -426,6 +409,7 @@ export function CreateWorldPage() {
                   <input
                     type="radio"
                     id="premium"
+                    name="pricingModel"
                     checked={worldData.pricing.premium}
                     onChange={() => setWorldData(prev => ({
                       ...prev,
@@ -463,20 +447,16 @@ export function CreateWorldPage() {
         return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className={`cursor-pointer transition-all ${worldData.features.events ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.events ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('events')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-5 h-5 text-blue-500" />
                       <CardTitle className="text-lg">Live Events</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.events ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('events')}
-                    >
-                      {worldData.features.events ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.events ? 'default' : 'outline'}>
+                      {worldData.features.events ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -486,20 +466,16 @@ export function CreateWorldPage() {
                 </CardContent>
               </Card>
 
-              <Card className={`cursor-pointer transition-all ${worldData.features.translations ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.translations ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('translations')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Languages className="w-5 h-5 text-green-500" />
                       <CardTitle className="text-lg">Multi-Language</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.translations ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('translations')}
-                    >
-                      {worldData.features.translations ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.translations ? 'default' : 'outline'}>
+                      {worldData.features.translations ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -509,20 +485,16 @@ export function CreateWorldPage() {
                 </CardContent>
               </Card>
 
-              <Card className={`cursor-pointer transition-all ${worldData.features.social ? 'ring-2 ring-primary' : ''}`}>
+              <Card className={`cursor-pointer transition-all ${worldData.features.social ? 'ring-2 ring-primary' : ''}`} onClick={() => handleFeatureToggle('social')}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Share2 className="w-5 h-5 text-purple-500" />
                       <CardTitle className="text-lg">Social Sharing</CardTitle>
                     </div>
-                    <Button
-                      variant={worldData.features.social ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => handleFeatureToggle('social')}
-                    >
-                      {worldData.features.social ? 'Enabled' : 'Enable'}
-                    </Button>
+                    <Badge variant={worldData.features.social ? 'default' : 'outline'}>
+                      {worldData.features.social ? 'Enabled' : 'Disabled'}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -736,7 +708,7 @@ export function CreateWorldPage() {
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Deploying...
                 </>
               ) : (
