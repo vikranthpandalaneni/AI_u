@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/utils'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuth } from '../../contexts/AuthContext'
 import {
   LayoutDashboard,
   Sparkles,
@@ -69,7 +69,7 @@ const integrations = [
 
 export function Sidebar({ className }: SidebarProps) {
   const location = useLocation()
-  const { user } = useAuthStore()
+  const { user } = useAuth()
 
   if (!user) return null
 

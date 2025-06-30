@@ -1,6 +1,6 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { LoadingSpinner } from './LoadingSpinner'
 
 interface ProtectedRouteProps {
@@ -9,16 +9,15 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/auth' }: ProtectedRouteProps) {
-  const { user, loading, initialized } = useAuthStore()
+  const { user, loading } = useAuth()
   const location = useLocation()
 
-  // Show loading while auth is initializing or loading
-  if (!initialized || loading) {
+  if (loading) {
     return <LoadingSpinner message="Checking authentication..." />
   }
 
-  // Redirect to auth if no user
   if (!user) {
+    // Save the attempted location for redirecting after login
     return <Navigate to={redirectTo} state={{ from: location }} replace />
   }
 

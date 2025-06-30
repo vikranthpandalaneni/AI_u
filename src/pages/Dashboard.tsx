@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { WorldCard } from '../components/world/WorldCard'
 import { LoadingSpinner } from '../components/LoadingSpinner'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import { formatCurrency } from '../lib/utils'
 import {
@@ -59,22 +59,14 @@ const mockRecentActivity = [
 ]
 
 export function Dashboard() {
-  const { user } = useAuthStore()
-  const { worlds, loading, subscribeToWorlds } = useWorldStore()
+  const { user } = useAuth()
+  const { worlds, loading, fetchWorlds } = useWorldStore()
 
   useEffect(() => {
     if (user) {
-      // Subscribe to real-time updates
-      const subscription = subscribeToWorlds(user.id)
-      
-      // Cleanup subscription on unmount
-      return () => {
-        if (subscription) {
-          subscription.unsubscribe()
-        }
-      }
+      fetchWorlds(user.id)
     }
-  }, [user, subscribeToWorlds])
+  }, [user, fetchWorlds])
 
   const userWorlds = worlds.map(world => ({
     ...world,

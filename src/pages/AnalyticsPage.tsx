@@ -3,7 +3,7 @@ import { Layout } from '../components/layout/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import {
   BarChart3,
@@ -45,7 +45,7 @@ const mockAnalytics = {
 }
 
 export function AnalyticsPage() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const { worlds, fetchWorlds } = useWorldStore()
   const [timeRange, setTimeRange] = useState('7d')
 
@@ -62,9 +62,9 @@ export function AnalyticsPage() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount)
   }
 
