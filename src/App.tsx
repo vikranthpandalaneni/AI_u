@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { LandingPage } from './pages/LandingPage'
@@ -15,16 +15,9 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { Loading } from './components/ui/Loading'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { useAuthStore } from './stores/authStore'
 
 // App content component that uses auth context
 function AppContent() {
-  const { initialize } = useAuthStore()
-
-  useEffect(() => {
-    initialize()
-  }, [initialize])
-
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />

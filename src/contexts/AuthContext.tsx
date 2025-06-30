@@ -116,6 +116,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true)
     setError(null)
     
+    // Client-side validation
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address')
+      setLoading(false)
+      return { error: { message: 'Please enter a valid email address' } }
+    }
+    
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      setLoading(false)
+      return { error: { message: 'Password must be at least 6 characters long' } }
+    }
+    
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -144,6 +157,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     setError(null)
+    
+    // Client-side validation
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address')
+      setLoading(false)
+      return { error: { message: 'Please enter a valid email address' } }
+    }
+    
+    if (!password) {
+      setError('Password is required')
+      setLoading(false)
+      return { error: { message: 'Password is required' } }
+    }
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -202,12 +228,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut()
       if (error) {
         setError(error.message)
+        throw error
       } else {
         console.log('Sign out successful')
+        // Clear state immediately
+        setUser(null)
+        setSession(null)
       }
     } catch (err: any) {
       const errorMessage = err.message || 'Sign out failed'
       setError(errorMessage)
+      throw err
     } finally {
       setLoading(false)
     }
