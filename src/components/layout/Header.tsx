@@ -48,15 +48,16 @@ export function Header({ onMenuClick }: HeaderProps) {
       // Redirect after a brief delay to show success message
       setTimeout(() => {
         navigate('/')
-      }, 1000)
+        setLogoutMessage(null)
+      }, 1500)
     } catch (error) {
       console.error('Sign out error:', error)
       setLogoutMessage({ type: 'error', text: 'Failed to sign out. Please try again.' })
       
-      // Force navigation even if signOut fails
+      // Clear error message after delay
       setTimeout(() => {
-        navigate('/')
-      }, 2000)
+        setLogoutMessage(null)
+      }, 3000)
     } finally {
       setLogoutLoading(false)
     }

@@ -31,10 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let mounted = true
+
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (!mounted) return
+
         if (error) {
           console.error('Error getting session:', error)
           setError(error.message)
@@ -48,10 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } catch (err: any) {
+        if (!mounted) return
         console.error('Session error:', err)
         setError(err.message || 'Failed to get session')
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
@@ -60,7 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return
+
         console.log('Auth state changed:', event, session?.user?.email)
+        
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
@@ -70,10 +81,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if ((event === 'SIGNED_UP' || event === 'SIGNED_IN') && session?.user) {
           await createUserProfile(session.user)
         }
+
+        // Clear user data on sign out
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setSession(null)
+        }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const createUserProfile = async (user: User) => {
@@ -118,15 +138,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Client-side validation
     if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address')
+      const errorMsg = 'Please enter a valid email address'
+      setError(errorMsg)
       setLoading(false)
-      return { error: { message: 'Please enter a valid email address' } }
+      return { error: { message: errorMsg } }
     }
     
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters long')
+      const errorMsg = 'Password must be at least 6 characters long'
+      setError(errorMsg)
       setLoading(false)
-      return { error: { message: 'Password must be at least 6 characters long' } }
+      return { error: { message: errorMsg } }
     }
     
     try {
@@ -140,17 +162,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         setError(error.message)
+        setLoading(false)
         return { error }
       }
       
       console.log('Sign up successful:', data.user?.email)
+      setLoading(false)
       return { data }
     } catch (err: any) {
       const errorMessage = err.message || 'Sign up failed'
       setError(errorMessage)
-      return { error: { message: errorMessage } }
-    } finally {
       setLoading(false)
+      return { error: { message: errorMessage } }
     }
   }
 
@@ -160,15 +183,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Client-side validation
     if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address')
+      const errorMsg = 'Please enter a valid email address'
+      setError(errorMsg)
       setLoading(false)
-      return { error: { message: 'Please enter a valid email address' } }
+      return { error: { message: errorMsg } }
     }
     
     if (!password) {
-      setError('Password is required')
+      const errorMsg = 'Password is required'
+      setError(errorMsg)
       setLoading(false)
-      return { error: { message: 'Password is required' } }
+      return { error: { message: errorMsg } }
     }
     
     try {
@@ -179,17 +204,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         setError(error.message)
+        setLoading(false)
         return { error }
       }
       
       console.log('Sign in successful:', data.user?.email)
+      setLoading(false)
       return { data }
     } catch (err: any) {
       const errorMessage = err.message || 'Sign in failed'
       setError(errorMessage)
-      return { error: { message: errorMessage } }
-    } finally {
       setLoading(false)
+      return { error: { message: errorMessage } }
     }
   }
 
@@ -207,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         setError(error.message)
+        setLoading(false)
         return { error }
       }
       
@@ -214,9 +241,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       const errorMessage = err.message || 'GitHub sign in failed'
       setError(errorMessage)
-      return { error: { message: errorMessage } }
-    } finally {
       setLoading(false)
+      return { error: { message: errorMessage } }
     }
   }
 
@@ -226,21 +252,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       const { error } = await supabase.auth.signOut()
+      
       if (error) {
+        console.error('Sign out error:', error)
         setError(error.message)
+        setLoading(false)
         throw error
       } else {
         console.log('Sign out successful')
-        // Clear state immediately
-        setUser(null)
-        setSession(null)
+        // State will be cleared by the auth state change listener
+        setLoading(false)
       }
     } catch (err: any) {
       const errorMessage = err.message || 'Sign out failed'
       setError(errorMessage)
-      throw err
-    } finally {
       setLoading(false)
+      throw err
     }
   }
 

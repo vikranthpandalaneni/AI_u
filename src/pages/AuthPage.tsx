@@ -104,6 +104,7 @@ export function AuthPage() {
     setIsSubmitting(true)
     clearError()
     setSuccessMessage('')
+    setFormErrors({})
 
     try {
       let result
@@ -121,6 +122,7 @@ export function AuthPage() {
         
         if (!result.error) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
+          // Navigation will be handled by the useEffect above
         }
       }
 
