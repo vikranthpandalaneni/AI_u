@@ -6,7 +6,7 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Progress } from '../components/ui/progress'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useWorldStore } from '../stores/worldStore'
 import { generateSlug } from '../lib/utils'
 import {
@@ -35,7 +35,7 @@ const STEPS = [
 
 export function CreateWorldPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { createWorld, loading: isDeploying } = useWorldStore() // Renamed to avoid conflict
   
   const [currentStep, setCurrentStep] = useState(1)
