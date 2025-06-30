@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, redirectTo = '/auth' }: ProtectedRout
   const location = useLocation()
 
   if (loading) {
-    return <Loading message="Checking authentication..." />
+    return <Loading variant="page" message="Checking authentication..." showLogo />
   }
 
   if (!user) {

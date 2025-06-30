@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
-import { useAuthStore } from './stores/authStore.ts';
 
 // Initialize theme on app start
 const initializeTheme = () => {
@@ -30,13 +29,7 @@ const initializeTheme = () => {
   }
 };
 
-// Initialize auth immediately
-const initializeAuth = () => {
-  useAuthStore.getState().initialize();
-};
-
 initializeTheme();
-initializeAuth();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
