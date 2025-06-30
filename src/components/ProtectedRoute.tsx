@@ -1,7 +1,7 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LoadingSpinner } from './LoadingSpinner'
+import { Loading } from './ui/Loading'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, redirectTo = '/auth' }: ProtectedRout
   const location = useLocation()
 
   if (loading) {
-    return <LoadingSpinner message="Checking authentication..." />
+    return <Loading message="Checking authentication..." />
   }
 
   if (!user) {
