@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { LandingPage } from './pages/LandingPage'
 import { AuthPage } from './pages/AuthPage'
@@ -14,8 +14,22 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { Loading } from './components/ui/Loading'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { useAuthStore } from './stores/authStore'
 
 function App() {
+  const { initialized, initialize } = useAuthStore()
+
+  useEffect(() => {
+    if (!initialized) {
+      initialize()
+    }
+  }, [initialized, initialize])
+
+  // Show loading screen while auth is initializing
+  if (!initialized) {
+    return <Loading variant="page" message="Loading AI Universe..." showLogo />
+  }
+
   return (
     <ErrorBoundary>
       <Router>

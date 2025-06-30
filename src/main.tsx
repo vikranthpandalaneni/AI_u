@@ -30,22 +30,36 @@ const initializeTheme = () => {
   }
 };
 
-// Initialize auth store
-const initializeAuth = async () => {
+// Initialize auth store and render app
+const initializeApp = async () => {
   try {
+    // Initialize theme first
+    initializeTheme();
+    
+    // Initialize auth store
     await useAuthStore.getState().initialize();
+    
+    // Render the app
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </StrictMode>
+    );
   } catch (error) {
-    console.error('Failed to initialize auth:', error);
+    console.error('Failed to initialize app:', error);
+    
+    // Render app anyway with error boundary to handle gracefully
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </StrictMode>
+    );
   }
 };
 
-initializeTheme();
-initializeAuth();
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>
-);
+// Start the app
+initializeApp();
