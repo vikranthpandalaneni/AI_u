@@ -30,10 +30,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let mounted = true
+
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (!mounted) return
+        
         if (error) {
           console.error('Error getting session:', error)
           setError(error.message)
@@ -41,38 +46,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session)
           setUser(session?.user ?? null)
           
-          // Ensure user profile exists for initial session
+          // Create user profile if session exists
           if (session?.user) {
             await createUserProfile(session.user)
           }
         }
       } catch (err: any) {
+        if (!mounted) return
         console.error('Session error:', err)
         setError(err.message || 'Failed to get session')
       } finally {
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     }
 
     getInitialSession()
 
-    // Listen for auth changes - THIS IS THE ONLY AUTH LISTENER IN THE APP
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return
+        
         console.log('Auth state changed:', event, session?.user?.email)
+        
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
         setError(null)
 
-        // Handle user profile creation for all events where user is present
-        if (session?.user && (event === 'SIGNED_UP' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        // Create user profile for authenticated users
+        if (session?.user && (event === 'SIGNED_UP' || event === 'SIGNED_IN')) {
           await createUserProfile(session.user)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const createUserProfile = async (user: User) => {
@@ -105,6 +119,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else if (existingUser) {
         console.log('User profile already exists')
+      } else if (fetchError) {
+        console.error('Error checking user profile:', fetchError)
       }
     } catch (error) {
       console.error('Error in createUserProfile:', error)
@@ -174,12 +190,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.signOut()
       if (error) {
         setError(error.message)
+        throw error
       } else {
         console.log('Sign out successful')
+        // Clear state immediately
+        setUser(null)
+        setSession(null)
       }
     } catch (err: any) {
       const errorMessage = err.message || 'Sign out failed'
       setError(errorMessage)
+      throw err
     } finally {
       setLoading(false)
     }

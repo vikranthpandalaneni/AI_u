@@ -1,4 +1,3 @@
-// FIXED: Updated header to use new auth context
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../ui/button'
@@ -39,6 +38,8 @@ export function Header({ onMenuClick }: HeaderProps) {
       navigate('/')
     } catch (error) {
       console.error('Sign out error:', error)
+      // Force navigation even if signOut fails
+      navigate('/')
     }
   }
 

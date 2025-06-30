@@ -16,6 +16,7 @@ interface WorldState {
   setCurrentWorld: (world: AIWorld | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  clearError: () => void
 }
 
 export const useWorldStore = create<WorldState>((set, get) => ({
@@ -30,12 +31,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const { data, error } = await db.getWorlds(userId)
       
       if (error) {
+        console.error('Fetch worlds error:', error)
         set({ error: error.message, loading: false })
         return
       }
 
       set({ worlds: data || [], loading: false })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Fetch worlds error:', error)
       set({ error: 'Failed to fetch worlds', loading: false })
     }
   },
@@ -46,12 +49,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const { data, error } = await db.getWorld(slug)
       
       if (error) {
+        console.error('Fetch world error:', error)
         set({ error: error.message, loading: false })
         return
       }
 
       set({ currentWorld: data, loading: false })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Fetch world error:', error)
       set({ error: 'Failed to fetch world', loading: false })
     }
   },
@@ -59,13 +64,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   createWorld: async (world) => {
     set({ loading: true, error: null })
     try {
+      console.log('Creating world with data:', world)
+      
       const { data, error } = await db.createWorld(world)
       
       if (error) {
+        console.error('Create world error:', error)
         set({ error: error.message, loading: false })
         return { error }
       }
 
+      console.log('World created successfully:', data)
+      
       const { worlds } = get()
       set({ 
         worlds: [data, ...worlds],
@@ -74,9 +84,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       })
 
       return { data, error: null }
-    } catch (error) {
-      set({ error: 'Failed to create world', loading: false })
-      return { error }
+    } catch (error: any) {
+      console.error('Create world error:', error)
+      const errorMessage = error.message || 'Failed to create world'
+      set({ error: errorMessage, loading: false })
+      return { error: { message: errorMessage } }
     }
   },
 
@@ -86,6 +98,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const { error } = await db.updateWorld(id, updates)
       
       if (error) {
+        console.error('Update world error:', error)
         set({ error: error.message, loading: false })
         return { error }
       }
@@ -104,7 +117,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       })
 
       return { error: null }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Update world error:', error)
       set({ error: 'Failed to update world', loading: false })
       return { error }
     }
@@ -116,6 +130,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const { error } = await db.deleteWorld(id)
       
       if (error) {
+        console.error('Delete world error:', error)
         set({ error: error.message, loading: false })
         return { error }
       }
@@ -130,7 +145,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       })
 
       return { error: null }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Delete world error:', error)
       set({ error: 'Failed to delete world', loading: false })
       return { error }
     }
@@ -138,5 +154,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   setCurrentWorld: (world: AIWorld | null) => set({ currentWorld: world }),
   setLoading: (loading: boolean) => set({ loading }),
-  setError: (error: string | null) => set({ error })
+  setError: (error: string | null) => set({ error }),
+  clearError: () => set({ error: null })
 }))
