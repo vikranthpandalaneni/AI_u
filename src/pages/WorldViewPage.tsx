@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { ChatInterface } from '../components/chat/ChatInterface'
+import { Loading } from '../components/ui/Loading'
 import { useWorldStore } from '../stores/worldStore'
-import { useAuthStore } from '../stores/authStore'
+import { useAuth } from '../contexts/AuthContext'
 import { formatDate, getInitials } from '../lib/utils'
 import {
   ArrowLeft,
@@ -29,7 +30,7 @@ import {
 export function WorldViewPage() {
   const { slug } = useParams<{ slug: string }>()
   const { currentWorld, fetchWorld, loading } = useWorldStore()
-  const { user } = useAuthStore()
+  const { user } = useAuth()
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
 
@@ -40,11 +41,7 @@ export function WorldViewPage() {
   }, [slug, fetchWorld])
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
+    return <Loading variant="page" message="Loading world..." showLogo />
   }
 
   if (!currentWorld) {
