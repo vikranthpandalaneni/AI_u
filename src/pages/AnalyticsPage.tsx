@@ -3,7 +3,7 @@ import { Layout } from '../components/layout/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useWorldStore } from '../stores/worldStore'
 import {
   BarChart3,
@@ -45,7 +45,7 @@ const mockAnalytics = {
 }
 
 export function AnalyticsPage() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { worlds, fetchWorlds } = useWorldStore()
   const [timeRange, setTimeRange] = useState('7d')
 
