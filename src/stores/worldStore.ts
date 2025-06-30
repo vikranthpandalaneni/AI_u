@@ -33,14 +33,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       
       if (error) {
         console.error('Fetch worlds error:', error)
-        set({ error: error.message, loading: false })
+        set({ error: 'Failed to load worlds. Please try again.', loading: false })
         return
       }
 
       set({ worlds: data || [], loading: false })
     } catch (error: any) {
       console.error('Fetch worlds error:', error)
-      set({ error: 'Failed to fetch worlds', loading: false })
+      set({ error: 'Failed to load worlds. Please try again.', loading: false })
     }
   },
 
@@ -51,14 +51,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       
       if (error) {
         console.error('Fetch world error:', error)
-        set({ error: error.message, loading: false })
+        set({ error: 'World not found or access denied.', loading: false })
         return
       }
 
       set({ currentWorld: data, loading: false })
     } catch (error: any) {
       console.error('Fetch world error:', error)
-      set({ error: 'Failed to fetch world', loading: false })
+      set({ error: 'Failed to load world. Please try again.', loading: false })
     }
   },
 
@@ -71,8 +71,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       
       if (error) {
         console.error('Create world error:', error)
-        set({ error: error.message, loading: false })
-        return { error }
+        
+        // Map specific errors to user-friendly messages
+        let errorMessage = 'Failed to create world. Please try again.'
+        if (error.message?.includes('duplicate key value violates unique constraint "ai_worlds_slug_key"')) {
+          errorMessage = 'This world name is already taken. Please choose another.'
+        } else if (error.message?.includes('permission denied')) {
+          errorMessage = 'You do not have permission to create worlds.'
+        }
+        
+        set({ error: errorMessage, loading: false })
+        return { error: { message: errorMessage } }
       }
 
       console.log('World created successfully:', data)
@@ -87,7 +96,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       return { data, error: null }
     } catch (error: any) {
       console.error('Create world error:', error)
-      const errorMessage = error.message || 'Failed to create world'
+      
+      // Generic user-friendly error message
+      const errorMessage = 'Failed to create world. Please check your connection and try again.'
       set({ error: errorMessage, loading: false })
       return { error: { message: errorMessage } }
     }
@@ -100,7 +111,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       
       if (error) {
         console.error('Update world error:', error)
-        set({ error: error.message, loading: false })
+        set({ error: 'Failed to update world. Please try again.', loading: false })
         return { error }
       }
 
@@ -120,7 +131,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       return { error: null }
     } catch (error: any) {
       console.error('Update world error:', error)
-      set({ error: 'Failed to update world', loading: false })
+      set({ error: 'Failed to update world. Please try again.', loading: false })
       return { error }
     }
   },
@@ -132,7 +143,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       
       if (error) {
         console.error('Delete world error:', error)
-        set({ error: error.message, loading: false })
+        set({ error: 'Failed to delete world. Please try again.', loading: false })
         return { error }
       }
 
@@ -148,7 +159,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       return { error: null }
     } catch (error: any) {
       console.error('Delete world error:', error)
-      set({ error: 'Failed to delete world', loading: false })
+      set({ error: 'Failed to delete world. Please try again.', loading: false })
       return { error }
     }
   },

@@ -112,7 +112,7 @@ export interface MemeEntry {
   created_at: string
 }
 
-// Database helpers with better error handling
+// Database helpers with better error handling and user-friendly messages
 export const db = {
   // Users
   getUser: async (id: string) => {
@@ -124,7 +124,7 @@ export const db = {
         .single()
     } catch (error) {
       console.error('Get user error:', error)
-      throw error
+      throw new Error('Failed to load user profile')
     }
   },
 
@@ -137,7 +137,7 @@ export const db = {
         .single()
     } catch (error) {
       console.error('Insert user error:', error)
-      throw error
+      throw new Error('Failed to create user profile')
     }
   },
 
@@ -149,7 +149,7 @@ export const db = {
         .eq('id', id)
     } catch (error) {
       console.error('Update user error:', error)
-      throw error
+      throw new Error('Failed to update user profile')
     }
   },
 
@@ -167,7 +167,7 @@ export const db = {
       return await query.order('created_at', { ascending: false })
     } catch (error) {
       console.error('Get worlds error:', error)
-      throw error
+      throw new Error('Failed to load worlds')
     }
   },
 
@@ -180,7 +180,7 @@ export const db = {
         .single()
     } catch (error) {
       console.error('Get world error:', error)
-      throw error
+      throw new Error('Failed to load world')
     }
   },
 
@@ -191,9 +191,15 @@ export const db = {
         .insert(world)
         .select()
         .single()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create world error:', error)
-      throw error
+      
+      // Map specific database errors to user-friendly messages
+      if (error.message?.includes('duplicate key value violates unique constraint "ai_worlds_slug_key"')) {
+        throw new Error('This world name is already taken. Please choose another.')
+      }
+      
+      throw new Error('Failed to create world. Please try again.')
     }
   },
 
@@ -205,7 +211,7 @@ export const db = {
         .eq('id', id)
     } catch (error) {
       console.error('Update world error:', error)
-      throw error
+      throw new Error('Failed to update world')
     }
   },
 
@@ -217,7 +223,7 @@ export const db = {
         .eq('id', id)
     } catch (error) {
       console.error('Delete world error:', error)
-      throw error
+      throw new Error('Failed to delete world')
     }
   },
 
@@ -235,7 +241,7 @@ export const db = {
       return await query.order('start_time', { ascending: true })
     } catch (error) {
       console.error('Get events error:', error)
-      throw error
+      throw new Error('Failed to load events')
     }
   },
 
@@ -248,7 +254,7 @@ export const db = {
         .single()
     } catch (error) {
       console.error('Create event error:', error)
-      throw error
+      throw new Error('Failed to create event')
     }
   },
 
@@ -262,7 +268,7 @@ export const db = {
         .single()
     } catch (error) {
       console.error('Update event error:', error)
-      throw error
+      throw new Error('Failed to update event')
     }
   },
 
@@ -274,7 +280,7 @@ export const db = {
         .eq('id', id)
     } catch (error) {
       console.error('Delete event error:', error)
-      throw error
+      throw new Error('Failed to delete event')
     }
   },
 
@@ -286,7 +292,7 @@ export const db = {
         .insert(event)
     } catch (error) {
       console.error('Track event error:', error)
-      throw error
+      throw new Error('Failed to track event')
     }
   },
 
@@ -308,12 +314,12 @@ export const db = {
       return await query.order('timestamp', { ascending: false })
     } catch (error) {
       console.error('Get analytics error:', error)
-      throw error
+      throw new Error('Failed to load analytics')
     }
   }
 }
 
-// Storage helpers
+// Storage helpers with secure signed URLs
 export const storage = {
   uploadFile: async (bucket: string, path: string, file: File) => {
     try {
@@ -322,18 +328,18 @@ export const storage = {
         .upload(path, file)
     } catch (error) {
       console.error('Upload file error:', error)
-      throw error
+      throw new Error('Failed to upload file')
     }
   },
 
   getUserFiles: async (userId: string) => {
     try {
       return await supabase.storage
-        .from('avatars')
+        .from('user-files')
         .list(userId)
     } catch (error) {
       console.error('Get user files error:', error)
-      throw error
+      throw new Error('Failed to load files')
     }
   },
 
@@ -343,6 +349,18 @@ export const storage = {
       .getPublicUrl(path)
   },
 
+  // SECURE: Create signed URLs for private file downloads
+  createSignedUrl: async (bucket: string, path: string, expiresIn: number = 60) => {
+    try {
+      return await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, expiresIn)
+    } catch (error) {
+      console.error('Create signed URL error:', error)
+      throw new Error('Failed to create download link')
+    }
+  },
+
   deleteFile: async (bucket: string, path: string) => {
     try {
       return await supabase.storage
@@ -350,7 +368,7 @@ export const storage = {
         .remove([path])
     } catch (error) {
       console.error('Delete file error:', error)
-      throw error
+      throw new Error('Failed to delete file')
     }
   }
 }

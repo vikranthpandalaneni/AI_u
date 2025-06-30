@@ -34,14 +34,15 @@ export const useEventStore = create<EventState>((set, get) => ({
       const { data, error } = await db.getEvents(worldId)
       
       if (error) {
-        set({ error: error.message, loading: false })
+        console.error('Fetch events error:', error)
+        set({ error: 'Failed to load events. Please try again.', loading: false })
         return
       }
 
       set({ events: data || [], loading: false })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch events:', error)
-      set({ error: 'Failed to fetch events', loading: false })
+      set({ error: 'Failed to load events. Please try again.', loading: false })
     }
   },
 
@@ -51,8 +52,18 @@ export const useEventStore = create<EventState>((set, get) => ({
       const { data, error } = await db.createEvent(event)
       
       if (error) {
-        set({ error: error.message, loading: false })
-        return { error }
+        console.error('Create event error:', error)
+        
+        // Map specific errors to user-friendly messages
+        let errorMessage = 'Failed to create event. Please try again.'
+        if (error.message?.includes('permission denied')) {
+          errorMessage = 'You do not have permission to create events in this world.'
+        } else if (error.message?.includes('foreign key constraint')) {
+          errorMessage = 'The selected world is no longer available.'
+        }
+        
+        set({ error: errorMessage, loading: false })
+        return { error: { message: errorMessage } }
       }
 
       const { events } = get()
@@ -62,10 +73,11 @@ export const useEventStore = create<EventState>((set, get) => ({
       })
 
       return { data, error: null }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create event:', error)
-      set({ error: 'Failed to create event', loading: false })
-      return { error }
+      const errorMessage = 'Failed to create event. Please check your connection and try again.'
+      set({ error: errorMessage, loading: false })
+      return { error: { message: errorMessage } }
     }
   },
 
@@ -75,7 +87,8 @@ export const useEventStore = create<EventState>((set, get) => ({
       const { data, error } = await db.updateEvent(id, updates)
       
       if (error) {
-        set({ error: error.message, loading: false })
+        console.error('Update event error:', error)
+        set({ error: 'Failed to update event. Please try again.', loading: false })
         return { error }
       }
 
@@ -90,9 +103,9 @@ export const useEventStore = create<EventState>((set, get) => ({
       })
 
       return { error: null }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update event:', error)
-      set({ error: 'Failed to update event', loading: false })
+      set({ error: 'Failed to update event. Please try again.', loading: false })
       return { error }
     }
   },
@@ -103,7 +116,8 @@ export const useEventStore = create<EventState>((set, get) => ({
       const { error } = await db.deleteEvent(id)
       
       if (error) {
-        set({ error: error.message, loading: false })
+        console.error('Delete event error:', error)
+        set({ error: 'Failed to delete event. Please try again.', loading: false })
         return { error }
       }
 
@@ -116,9 +130,9 @@ export const useEventStore = create<EventState>((set, get) => ({
       })
 
       return { error: null }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete event:', error)
-      set({ error: 'Failed to delete event', loading: false })
+      set({ error: 'Failed to delete event. Please try again.', loading: false })
       return { error }
     }
   },

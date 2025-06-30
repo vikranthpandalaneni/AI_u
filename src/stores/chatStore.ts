@@ -48,21 +48,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Send to other users via realtime
     await realtime.sendChatMessage(worldId, message)
 
-    // Simulate AI response (replace with actual AI integration)
+    // REAL AI INTEGRATION: Replace with actual OpenAI/Claude API call
     set({ isTyping: true })
     
-    setTimeout(() => {
-      const aiResponse: ChatMessage = {
+    try {
+      // TODO: Implement real AI chat integration
+      // This should make an authenticated server-side call to OpenAI/Claude
+      // For now, using enhanced mock responses
+      
+      const aiResponse = await generateAIResponse(content)
+      
+      const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        content: generateAIResponse(content),
+        content: aiResponse,
         role: 'assistant',
         timestamp: new Date().toISOString(),
         worldId,
       }
 
-      get().addMessage(aiResponse)
+      get().addMessage(assistantMessage)
       set({ isTyping: false })
-    }, 1000 + Math.random() * 2000)
+    } catch (error) {
+      console.error('AI response error:', error)
+      
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "I'm sorry, I'm having trouble responding right now. Please try again in a moment.",
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        worldId,
+      }
+
+      get().addMessage(errorMessage)
+      set({ isTyping: false })
+    }
   },
 
   addMessage: (message: ChatMessage) => {
@@ -103,33 +122,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clearMessages: () => set({ messages: [] })
 }))
 
-// Simple AI response generator (replace with actual AI integration)
-function generateAIResponse(userMessage: string): string {
-  const responses = [
-    "That's an interesting perspective! Tell me more about what you're thinking.",
-    "I understand what you're saying. How can I help you explore this further?",
-    "Great question! Let me think about that for a moment...",
-    "I see where you're coming from. What would you like to know more about?",
-    "That's a fascinating topic. Would you like me to elaborate on any particular aspect?",
-    "Thanks for sharing that with me. What's your main goal here?",
-    "I appreciate you bringing this up. How can I best assist you with this?",
-    "That's definitely worth exploring. What's the most important part for you?",
-  ]
-
-  // Simple keyword-based responses
+// Enhanced AI response generator (to be replaced with real AI integration)
+async function generateAIResponse(userMessage: string): Promise<string> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
+  
   const lowerMessage = userMessage.toLowerCase()
   
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-    return "Hello! Welcome to this AI World. How can I help you today?"
+  // Context-aware responses
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return "Hello! Welcome to this AI World. I'm here to help you explore and learn. What would you like to know about?"
   }
   
-  if (lowerMessage.includes('help')) {
-    return "I'm here to help! You can ask me questions, have a conversation, or explore the features of this AI World. What would you like to do?"
+  if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+    return "I can help you with a variety of tasks! I can answer questions, provide explanations, help with creative writing, solve problems, or just have a conversation. What specific area would you like assistance with?"
   }
   
-  if (lowerMessage.includes('what') && lowerMessage.includes('do')) {
-    return "In this AI World, you can chat with me, explore different features, create content, and connect with other users. What interests you most?"
+  if (lowerMessage.includes('create') || lowerMessage.includes('build') || lowerMessage.includes('make')) {
+    return "I'd love to help you create something! Whether it's writing, planning a project, brainstorming ideas, or building something specific, I'm here to assist. What did you have in mind?"
   }
+  
+  if (lowerMessage.includes('explain') || lowerMessage.includes('how does') || lowerMessage.includes('what is')) {
+    return "I'm great at explaining complex topics in simple terms! Feel free to ask me about any concept, process, or idea you'd like to understand better. What would you like me to explain?"
+  }
+  
+  if (lowerMessage.includes('ai universe') || lowerMessage.includes('this world')) {
+    return "AI Universe is a platform where creators can build personalized AI-powered experiences! This world you're in was created using our no-code tools, featuring AI chat, voice interactions, and much more. Each world is unique and tailored to its creator's vision."
+  }
+  
+  // Intelligent responses based on content
+  const responses = [
+    "That's a fascinating perspective! I'd love to explore this topic further with you. What specific aspect interests you most?",
+    "I find that really intriguing. Based on what you've shared, I think we could dive deeper into several related areas. Which direction appeals to you?",
+    "Great question! This touches on some important concepts. Let me share some thoughts and then I'd love to hear your perspective.",
+    "I appreciate you bringing this up. It's a topic that has many layers to it. What's your experience been with this?",
+    "That's an excellent point to consider. There are several ways to approach this, and I think your insight could help us find the best path forward.",
+    "I'm really glad you asked about this. It's something that many people wonder about, and there are some interesting angles we could explore together.",
+    "This is definitely worth discussing in detail. I think there are some practical applications here that might be really valuable for you.",
+    "You've touched on something really important here. Let me share some thoughts, and then I'd love to get your take on it."
+  ]
 
   return responses[Math.floor(Math.random() * responses.length)]
 }

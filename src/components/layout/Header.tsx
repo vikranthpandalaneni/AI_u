@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -12,9 +12,7 @@ import {
   LogOut, 
   Sparkles,
   Menu,
-  Loader2,
-  CheckCircle,
-  AlertCircle
+  Loader2
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -24,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { getInitials } from '../../lib/utils'
-import { useState } from 'react'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -34,32 +31,28 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut, loading } = useAuth()
   const { theme, setTheme } = useThemeStore()
   const navigate = useNavigate()
-  const [logoutLoading, setLogoutLoading] = useState(false)
-  const [logoutMessage, setLogoutMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
+  // Handle navigation after logout
+  useEffect(() => {
+    if (!user && !loading) {
+      // Only navigate if we're not on a public page
+      const publicPaths = ['/', '/explore', '/events', '/auth']
+      const currentPath = window.location.pathname
+      
+      if (!publicPaths.includes(currentPath) && !currentPath.startsWith('/w/')) {
+        navigate('/')
+      }
+    }
+  }, [user, loading, navigate])
 
   const handleSignOut = async () => {
-    setLogoutLoading(true)
-    setLogoutMessage(null)
-    
     try {
       await signOut()
-      setLogoutMessage({ type: 'success', text: 'Successfully signed out' })
-      
-      // Redirect after a brief delay to show success message
-      setTimeout(() => {
-        navigate('/')
-        setLogoutMessage(null)
-      }, 1500)
+      // Navigation will be handled by the useEffect above
     } catch (error) {
       console.error('Sign out error:', error)
-      setLogoutMessage({ type: 'error', text: 'Failed to sign out. Please try again.' })
-      
-      // Clear error message after delay
-      setTimeout(() => {
-        setLogoutMessage(null)
-      }, 3000)
-    } finally {
-      setLogoutLoading(false)
+      // Force navigation even if signOut fails
+      navigate('/')
     }
   }
 
@@ -162,25 +155,6 @@ export function Header({ onMenuClick }: HeaderProps) {
                   </div>
                 </div>
                 
-                {/* Logout Message */}
-                {logoutMessage && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="p-2">
-                      <div className={`flex items-center gap-2 text-sm ${
-                        logoutMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {logoutMessage.type === 'success' ? (
-                          <CheckCircle className="w-4 h-4" />
-                        ) : (
-                          <AlertCircle className="w-4 h-4" />
-                        )}
-                        {logoutMessage.text}
-                      </div>
-                    </div>
-                  </>
-                )}
-                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   <User className="mr-2 h-4 w-4" />
@@ -191,18 +165,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} disabled={logoutLoading}>
-                  {logoutLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing out...
-                    </>
-                  ) : (
-                    <>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign out
-                    </>
-                  )}
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -25,19 +25,8 @@ function AppContent() {
       <Route path="/explore" element={<ExplorePage />} />
       <Route path="/events" element={<EventsPage />} />
       
-      {/* World routes with nested structure */}
+      {/* UNIFIED: Single world route using user-friendly slugs */}
       <Route path="/w/:slug" element={<WorldViewPage />} />
-      <Route path="/world/:id" element={<WorldViewPage />} />
-      <Route path="/world/:id/settings" element={
-        <ProtectedRoute>
-          <SettingsPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/world/:id/analytics" element={
-        <ProtectedRoute>
-          <AnalyticsPage />
-        </ProtectedRoute>
-      } />
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={

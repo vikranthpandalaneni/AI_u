@@ -31,7 +31,8 @@ import {
   Video,
   Music,
   Archive,
-  AlertCircle
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react'
 
 interface UserFile {
@@ -54,6 +55,7 @@ export function SettingsPage() {
   const [uploadLoading, setUploadLoading] = useState(false)
   const [userFiles, setUserFiles] = useState<UserFile[]>([])
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
   
   const [profileData, setProfileData] = useState({
     name: user?.user_metadata?.name || user?.user_metadata?.full_name || '',
@@ -102,20 +104,28 @@ export function SettingsPage() {
 
     setUploadLoading(true)
     setUploadError(null)
+    setUploadSuccess(null)
 
     try {
-      const filePath = `${user.id}/${Date.now()}-${file.name}`
+      // SECURE: Generate unique filename with UUID prefix
+      const uniqueFilename = `${crypto.randomUUID()}-${file.name}`
+      const filePath = `${user.id}/${uniqueFilename}`
+      
       const { error } = await storage.uploadFile('user-files', filePath, file)
       
       if (error) {
         setUploadError(error.message)
       } else {
+        setUploadSuccess('File uploaded successfully!')
         await loadUserFiles() // Refresh file list
         // Clear the input
         event.target.value = ''
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => setUploadSuccess(null), 3000)
       }
-    } catch (error) {
-      setUploadError('Failed to upload file')
+    } catch (error: any) {
+      setUploadError(error.message || 'Failed to upload file')
       console.error('Upload error:', error)
     } finally {
       setUploadLoading(false)
@@ -139,14 +149,25 @@ export function SettingsPage() {
     }
   }
 
-  const handleFileDownload = (fileName: string) => {
+  // SECURE: Use signed URLs for private file downloads
+  const handleFileDownload = async (fileName: string) => {
     if (!user) return
 
-    const filePath = `${user.id}/${fileName}`
-    const { data } = storage.getPublicUrl('user-files', filePath)
-    
-    if (data?.publicUrl) {
-      window.open(data.publicUrl, '_blank')
+    try {
+      const filePath = `${user.id}/${fileName}`
+      const { data, error } = await storage.createSignedUrl('user-files', filePath, 300) // 5 minute expiry
+      
+      if (error) {
+        throw error
+      }
+      
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank')
+      }
+    } catch (error: any) {
+      console.error('Error creating download link:', error)
+      setUploadError('Failed to create download link. Please try again.')
+      setTimeout(() => setUploadError(null), 3000)
     }
   }
 
@@ -373,7 +394,7 @@ export function SettingsPage() {
                   My Files
                 </CardTitle>
                 <CardDescription>
-                  Upload and manage your personal files
+                  Upload and manage your personal files securely
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -396,7 +417,7 @@ export function SettingsPage() {
                         disabled={uploadLoading}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Maximum file size: 10MB
+                        Maximum file size: 10MB. Files are stored securely and privately.
                       </p>
                     </div>
                   </div>
@@ -406,7 +427,14 @@ export function SettingsPage() {
                 {uploadLoading && (
                   <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    <span className="text-sm text-blue-600">Uploading file...</span>
+                    <span className="text-sm text-blue-600">Uploading file securely...</span>
+                  </div>
+                )}
+
+                {uploadSuccess && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-md">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm text-green-600">{uploadSuccess}</span>
                   </div>
                 )}
 
@@ -462,6 +490,7 @@ export function SettingsPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleFileDownload(file.name)}
+                                title="Download file"
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
@@ -470,6 +499,7 @@ export function SettingsPage() {
                                 size="icon"
                                 onClick={() => handleFileDelete(file.name)}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Delete file"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
