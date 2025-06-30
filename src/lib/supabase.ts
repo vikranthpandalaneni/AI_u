@@ -26,6 +26,7 @@ export interface User {
   updated_at: string
 }
 
+// **FIXED**: This interface now perfectly matches the corrected database schema.
 export interface AIWorld {
   id: string
   user_id: string
@@ -33,9 +34,22 @@ export interface AIWorld {
   description?: string
   slug: string
   domain?: string
-  theme: any // JSONB
-  features: any // JSONB
-  pricing: any // JSONB - Added for pricing support
+  theme: { color: string; mode: 'light' | 'dark' }
+  features: {
+      chat: boolean;
+      voice: boolean;
+      video: boolean;
+      nft: boolean;
+      crypto: boolean;
+      events: boolean;
+      translations: boolean;
+      social: boolean;
+  }
+  pricing: {
+      free: boolean;
+      premium: boolean;
+      price: number;
+  }
   public: boolean
   created_at: string
   updated_at: string
@@ -99,243 +113,64 @@ export interface MemeEntry {
   created_at: string
 }
 
-// Database helpers with better error handling
+// Database helpers
 export const db = {
   // Users
-  getUser: async (id: string) => {
-    try {
-      return await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .single()
-    } catch (error) {
-      console.error('Get user error:', error)
-      throw error
-    }
-  },
-
-  insertUser: async (user: Omit<User, 'created_at' | 'updated_at'>) => {
-    try {
-      return await supabase
-        .from('users')
-        .insert(user)
-        .select()
-        .single()
-    } catch (error) {
-      console.error('Insert user error:', error)
-      throw error
-    }
-  },
-
-  updateUser: async (id: string, updates: Partial<User>) => {
-    try {
-      return await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', id)
-    } catch (error) {
-      console.error('Update user error:', error)
-      throw error
-    }
-  },
+  getUser: (id: string) => supabase.from('users').select('*').eq('id', id).single(),
+  insertUser: (user: Omit<User, 'created_at' | 'updated_at'>) => supabase.from('users').insert(user).select().single(),
+  updateUser: (id: string, updates: Partial<User>) => supabase.from('users').update(updates).eq('id', id),
 
   // AI Worlds
-  getWorlds: async (userId?: string) => {
-    try {
-      let query = supabase.from('ai_worlds').select('*')
-      
-      if (userId) {
-        query = query.eq('user_id', userId)
-      } else {
-        query = query.eq('public', true)
-      }
-      
-      return await query.order('created_at', { ascending: false })
-    } catch (error) {
-      console.error('Get worlds error:', error)
-      throw error
+  getWorlds: (userId?: string) => {
+    let query = supabase.from('ai_worlds').select('*')
+    if (userId) {
+      query = query.eq('user_id', userId)
+    } else {
+      query = query.eq('public', true)
     }
+    return query.order('created_at', { ascending: false })
+  },
+  getWorld: (slug: string) => supabase.from('ai_worlds').select('*').eq('slug', slug).single(),
+
+  // **FIXED**: Explicitly define the type for the 'world' parameter for type safety.
+  createWorld: (world: Omit<AIWorld, 'id' | 'created_at' | 'updated_at'>) => {
+    return supabase.from('ai_worlds').insert(world).select().single()
   },
 
-  getWorld: async (slug: string) => {
-    try {
-      return await supabase
-        .from('ai_worlds')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-    } catch (error) {
-      console.error('Get world error:', error)
-      throw error
-    }
-  },
-
-  createWorld: async (world: Omit<AIWorld, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      return await supabase
-        .from('ai_worlds')
-        .insert(world)
-        .select()
-        .single()
-    } catch (error) {
-      console.error('Create world error:', error)
-      throw error
-    }
-  },
-
-  updateWorld: async (id: string, updates: Partial<AIWorld>) => {
-    try {
-      return await supabase
-        .from('ai_worlds')
-        .update(updates)
-        .eq('id', id)
-    } catch (error) {
-      console.error('Update world error:', error)
-      throw error
-    }
-  },
-
-  deleteWorld: async (id: string) => {
-    try {
-      return await supabase
-        .from('ai_worlds')
-        .delete()
-        .eq('id', id)
-    } catch (error) {
-      console.error('Delete world error:', error)
-      throw error
-    }
-  },
+  updateWorld: (id: string, updates: Partial<AIWorld>) => supabase.from('ai_worlds').update(updates).eq('id', id),
+  deleteWorld: (id: string) => supabase.from('ai_worlds').delete().eq('id', id),
 
   // Events
-  getEvents: async (worldId?: string) => {
-    try {
-      let query = supabase.from('world_events').select(`
-        *,
-        ai_worlds!inner(title, user_id)
-      `)
-      
-      if (worldId) {
-        query = query.eq('world_id', worldId)
-      }
-      
-      return await query.order('start_time', { ascending: true })
-    } catch (error) {
-      console.error('Get events error:', error)
-      throw error
+  getEvents: (worldId?: string) => {
+    let query = supabase.from('world_events').select(`*, ai_worlds!inner(title, user_id)`)
+    if (worldId) {
+      query = query.eq('world_id', worldId)
     }
+    return query.order('start_time', { ascending: true })
   },
-
-  createEvent: async (event: Omit<WorldEvent, 'id' | 'created_at'>) => {
-    try {
-      return await supabase
-        .from('world_events')
-        .insert(event)
-        .select(`
-          *,
-          ai_worlds!inner(title, user_id)
-        `)
-        .single()
-    } catch (error) {
-      console.error('Create event error:', error)
-      throw error
-    }
-  },
-
-  updateEvent: async (id: string, updates: Partial<WorldEvent>) => {
-    try {
-      return await supabase
-        .from('world_events')
-        .update(updates)
-        .eq('id', id)
-        .select(`
-          *,
-          ai_worlds!inner(title, user_id)
-        `)
-        .single()
-    } catch (error) {
-      console.error('Update event error:', error)
-      throw error
-    }
-  },
-
-  deleteEvent: async (id: string) => {
-    try {
-      return await supabase
-        .from('world_events')
-        .delete()
-        .eq('id', id)
-    } catch (error) {
-      console.error('Delete event error:', error)
-      throw error
-    }
-  },
+  createEvent: (event: Omit<WorldEvent, 'id' | 'created_at'>) => supabase.from('world_events').insert(event).select(`*, ai_worlds!inner(title, user_id)`).single(),
+  updateEvent: (id: string, updates: Partial<WorldEvent>) => supabase.from('world_events').update(updates).eq('id', id).select(`*, ai_worlds!inner(title, user_id)`).single(),
+  deleteEvent: (id: string) => supabase.from('world_events').delete().eq('id', id),
 
   // Analytics
-  trackEvent: async (event: Omit<AnalyticsEvent, 'id' | 'timestamp'>) => {
-    try {
-      return await supabase
-        .from('analytics_events')
-        .insert(event)
-    } catch (error) {
-      console.error('Track event error:', error)
-      throw error
-    }
-  },
-
-  getAnalytics: async (worldId: string, startDate?: string, endDate?: string) => {
-    try {
-      let query = supabase
-        .from('analytics_events')
-        .select('*')
-        .eq('world_id', worldId)
-      
-      if (startDate) {
-        query = query.gte('timestamp', startDate)
-      }
-      
-      if (endDate) {
-        query = query.lte('timestamp', endDate)
-      }
-      
-      return await query.order('timestamp', { ascending: false })
-    } catch (error) {
-      console.error('Get analytics error:', error)
-      throw error
-    }
+  trackEvent: (event: Omit<AnalyticsEvent, 'id' | 'timestamp'>) => supabase.from('analytics_events').insert(event),
+  getAnalytics: (worldId: string, startDate?: string, endDate?: string) => {
+    let query = supabase.from('analytics_events').select('*').eq('world_id', worldId)
+    if (startDate) query = query.gte('timestamp', startDate)
+    if (endDate) query = query.lte('timestamp', endDate)
+    return query.order('timestamp', { ascending: false })
   }
 }
 
 // Storage helpers
 export const storage = {
-  uploadFile: async (bucket: string, path: string, file: File) => {
-    try {
-      return await supabase.storage
-        .from(bucket)
-        .upload(path, file)
-    } catch (error) {
-      console.error('Upload file error:', error)
-      throw error
-    }
-  },
-
-  getPublicUrl: (bucket: string, path: string) => {
-    return supabase.storage
-      .from(bucket)
-      .getPublicUrl(path)
-  },
-
-  deleteFile: async (bucket: string, path: string) => {
-    try {
-      return await supabase.storage
-        .from(bucket)
-        .remove([path])
-    } catch (error) {
-      console.error('Delete file error:', error)
-      throw error
-    }
-  }
+  uploadFile: (bucket: string, path: string, file: File) => supabase.storage.from(bucket).upload(path, file),
+  
+  getUserFiles: (userId: string) => supabase.storage.from('user-files').list(userId),
+  
+  getPublicUrl: (bucket: string, path: string) => supabase.storage.from(bucket).getPublicUrl(path),
+  
+  deleteFile: (bucket: string, path: string) => supabase.storage.from(bucket).remove([path])
 }
 
 // Real-time subscriptions

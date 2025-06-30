@@ -10,144 +10,91 @@ import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import { generateSlug } from '../lib/utils'
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Sparkles,
-  Palette,
-  Bot,
-  Coins,
-  Users,
-  Rocket,
-  Globe,
-  Mic,
-  Video,
-  MessageCircle,
-  Calendar,
-  Languages,
-  Share2,
-  Eye,
-  EyeOff,
-  Loader2
+  ArrowLeft, ArrowRight, Check, Sparkles, Palette, Bot, Coins, Users, Rocket,
+  Globe, Mic, Video, MessageCircle, Calendar, Languages, Share2, Eye, EyeOff,
+  Loader2, AlertCircle
 } from 'lucide-react'
 
 const STEPS = [
-  { id: 1, title: 'Basic Info', description: 'Name and describe your world' },
-  { id: 2, title: 'Theme & Design', description: 'Customize the look and feel' },
-  { id: 3, title: 'AI Features', description: 'Configure AI capabilities' },
-  { id: 4, title: 'Blockchain & Monetization', description: 'Set up payments and NFTs' },
-  { id: 5, title: 'Community & Events', description: 'Enable social features' },
-  { id: 6, title: 'Deploy', description: 'Launch your world' }
-]
+    { id: 1, title: 'Basic Info', description: 'Name and describe your world' },
+    { id: 2, title: 'Theme & Design', description: 'Customize the look and feel' },
+    { id: 3, title: 'AI Features', description: 'Configure AI capabilities' },
+    { id: 4, title: 'Blockchain & Monetization', description: 'Set up payments and NFTs' },
+    { id: 5, title: 'Community & Events', description: 'Enable social features' },
+    { id: 6, title: 'Deploy', description: 'Launch your world' }
+  ]
 
-const COLOR_THEMES = [
-  { name: 'Purple', value: 'purple', color: 'bg-purple-500' },
-  { name: 'Blue', value: 'blue', color: 'bg-blue-500' },
-  { name: 'Green', value: 'green', color: 'bg-green-500' },
-  { name: 'Pink', value: 'pink', color: 'bg-pink-500' },
-  { name: 'Orange', value: 'orange', color: 'bg-orange-500' },
-  { name: 'Red', value: 'red', color: 'bg-red-500' }
-]
+  const COLOR_THEMES = [
+    { name: 'Purple', value: 'purple', color: 'bg-purple-500' },
+    { name: 'Blue', value: 'blue', color: 'bg-blue-500' },
+    { name: 'Green', value: 'green', color: 'bg-green-500' },
+    { name: 'Pink', value: 'pink', color: 'bg-pink-500' },
+    { name: 'Orange', value: 'orange', color: 'bg-orange-500' },
+    { name: 'Red', value: 'red', color: 'bg-red-500' }
+  ]
 
 export function CreateWorldPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { createWorld, loading } = useWorldStore()
+  const { createWorld, loading: isDeploying } = useWorldStore() // Renamed to avoid conflict
   
   const [currentStep, setCurrentStep] = useState(1)
   const [worldData, setWorldData] = useState({
     title: '',
     description: '',
     slug: '',
-    theme: {
-      color: 'blue',
-      mode: 'light'
-    },
+    theme: { color: 'blue', mode: 'light' as 'light' | 'dark' },
     features: {
-      chat: true,
-      voice: false,
-      video: false,
-      nft: false,
-      crypto: false,
-      events: false,
-      translations: false,
-      social: false
+      chat: true, voice: false, video: false, nft: false, crypto: false,
+      events: false, translations: false, social: false
     },
     public: true,
     domain: '',
-    pricing: {
-      free: true,
-      premium: false,
-      price: 0
-    }
+    pricing: { free: true, premium: false, price: 0 }
   })
+  // **FIXED**: Added state for deployment errors
+  const [deployError, setDeployError] = useState<string | null>(null);
 
   const progress = (currentStep / STEPS.length) * 100
 
-  const handleNext = () => {
-    if (currentStep < STEPS.length) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
+  const handleNext = () => currentStep < STEPS.length && setCurrentStep(currentStep + 1)
+  const handlePrevious = () => currentStep > 1 && setCurrentStep(currentStep - 1)
 
   const handleTitleChange = (title: string) => {
-    setWorldData(prev => ({
-      ...prev,
-      title,
-      slug: generateSlug(title)
-    }))
+    setWorldData(prev => ({ ...prev, title, slug: generateSlug(title) }))
   }
 
   const handleFeatureToggle = (feature: keyof typeof worldData.features) => {
     setWorldData(prev => ({
       ...prev,
-      features: {
-        ...prev.features,
-        [feature]: !prev.features[feature]
-      }
+      features: { ...prev.features, [feature]: !prev.features[feature] }
     }))
   }
 
+  // **FIXED**: A more robust deploy function with clear error handling
   const handleDeploy = async () => {
     if (!user) {
-      console.error('No user found - cannot deploy world')
-      return
+      setDeployError('You must be logged in to deploy a world.');
+      return;
     }
+    setDeployError(null); // Clear previous errors
 
-    try {
-      // Prepare data for insertion - serialize JSON objects properly
-      const worldToCreate = {
-        user_id: user.id,
-        title: worldData.title,
-        description: worldData.description,
-        slug: worldData.slug,
-        domain: worldData.domain,
-        theme: worldData.theme, // Keep as object - Supabase will handle JSONB conversion
-        features: worldData.features, // Keep as object - Supabase will handle JSONB conversion
-        pricing: worldData.pricing, // Keep as object - Supabase will handle JSONB conversion
-        public: worldData.public
-      }
+    const worldToCreate = {
+      user_id: user.id,
+      ...worldData
+    };
 
-      console.log('Creating world with data:', worldToCreate)
+    const result = await createWorld(worldToCreate);
 
-      const result = await createWorld(worldToCreate)
-
-      if (result.data) {
-        console.log('World created successfully:', result.data)
-        navigate(`/w/${result.data.slug}`)
-      } else if (result.error) {
-        console.error('Failed to create world:', result.error)
-      }
-    } catch (error) {
-      console.error('An unexpected error occurred during deployment:', error)
+    if (result.error) {
+      console.error('Failed to create world:', result.error);
+      // Set the error message from the database to be displayed in the UI
+      setDeployError(result.error.message || 'An unknown error occurred during deployment.');
+    } else if (result.data) {
+      console.log('World created successfully:', result.data);
+      navigate(`/w/${result.data.slug}`);
     }
-  }
+  };
 
   const renderStep = () => {
     switch (currentStep) {
@@ -527,6 +474,14 @@ export function CreateWorldPage() {
       case 6:
         return (
           <div className="space-y-6">
+            {/* **FIXED: Error display alert** */}
+            {deployError && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <p className="text-sm text-red-600 dark:text-red-400">{deployError}</p>
+              </div>
+            )}
+
             <div className="text-center">
               <Rocket className="w-16 h-16 mx-auto mb-4 text-primary" />
               <h3 className="text-2xl font-bold mb-2">Ready to Launch!</h3>
@@ -562,20 +517,11 @@ export function CreateWorldPage() {
                     {Object.entries(worldData.features).map(([key, enabled]) => {
                       if (!enabled) return null
                       const labels = {
-                        chat: 'AI Chat',
-                        voice: 'Voice AI',
-                        video: 'Video Agents',
-                        nft: 'NFT Identities',
-                        crypto: 'Crypto Payments',
-                        events: 'Live Events',
-                        translations: 'Multi-Language',
-                        social: 'Social Sharing'
+                        chat: 'AI Chat', voice: 'Voice AI', video: 'Video Agents',
+                        nft: 'NFT Identities', crypto: 'Crypto Payments', events: 'Live Events',
+                        translations: 'Multi-Language', social: 'Social Sharing'
                       }
-                      return (
-                        <Badge key={key} variant="secondary">
-                          {labels[key as keyof typeof labels]}
-                        </Badge>
-                      )
+                      return <Badge key={key} variant="secondary">{labels[key as keyof typeof labels]}</Badge>
                     })}
                   </div>
                 </div>
@@ -606,120 +552,120 @@ export function CreateWorldPage() {
       <div className="container max-w-4xl py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Create AI World</h1>
-            <p className="text-muted-foreground">
-              Build your personalized AI-powered experience in minutes
-            </p>
+            <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">Create AI World</h1>
+              <p className="text-muted-foreground">
+                Build your personalized AI-powered experience in minutes
+              </p>
+            </div>
           </div>
-        </div>
-
-        {/* Progress */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium">
-              Step {currentStep} of {STEPS.length}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(progress)}% Complete
-            </span>
+  
+          {/* Progress */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium">
+                Step {currentStep} of {STEPS.length}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {Math.round(progress)}% Complete
+              </span>
+            </div>
+            <Progress value={progress} className="h-2" />
           </div>
-          <Progress value={progress} className="h-2" />
-        </div>
-
-        {/* Steps */}
-        <div className="flex items-center justify-between mb-8 overflow-x-auto">
-          {STEPS.map((step, index) => (
-            <div
-              key={step.id}
-              className={`flex items-center ${index < STEPS.length - 1 ? 'flex-1' : ''}`}
-            >
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    step.id <= currentStep
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {step.id < currentStep ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    step.id
-                  )}
-                </div>
-                <div className="text-center mt-2 min-w-0">
-                  <div className="text-sm font-medium">{step.title}</div>
-                  <div className="text-xs text-muted-foreground hidden sm:block">
-                    {step.description}
+  
+          {/* Steps */}
+          <div className="flex items-center justify-between mb-8 overflow-x-auto">
+            {STEPS.map((step, index) => (
+              <div
+                key={step.id}
+                className={`flex items-center ${index < STEPS.length - 1 ? 'flex-1' : ''}`}
+              >
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      step.id <= currentStep
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {step.id < currentStep ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      step.id
+                    )}
+                  </div>
+                  <div className="text-center mt-2 min-w-0">
+                    <div className="text-sm font-medium">{step.title}</div>
+                    <div className="text-xs text-muted-foreground hidden sm:block">
+                      {step.description}
+                    </div>
                   </div>
                 </div>
+                {index < STEPS.length - 1 && (
+                  <div
+                    className={`flex-1 h-px mx-4 ${
+                      step.id < currentStep ? 'bg-primary' : 'bg-muted'
+                    }`}
+                  />
+                )}
               </div>
-              {index < STEPS.length - 1 && (
-                <div
-                  className={`flex-1 h-px mx-4 ${
-                    step.id < currentStep ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Content */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
-            <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {renderStep()}
-          </CardContent>
-        </Card>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Previous
-          </Button>
-
-          {currentStep < STEPS.length ? (
+            ))}
+          </div>
+  
+          {/* Content */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
+              <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {renderStep()}
+            </CardContent>
+          </Card>
+  
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
             <Button
-              onClick={handleNext}
-              disabled={!worldData.title}
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 1}
             >
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Previous
             </Button>
-          ) : (
-            <Button
-              onClick={handleDeploy}
-              disabled={loading || !worldData.title || !user}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deploying...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4 mr-2" />
-                  Deploy World
-                </>
-              )}
-            </Button>
-          )}
-        </div>
+  
+            {currentStep < STEPS.length ? (
+              <Button
+                onClick={handleNext}
+                disabled={!worldData.title}
+              >
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleDeploy}
+                disabled={isDeploying || !worldData.title || !user}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                {isDeploying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deploying...
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4 mr-2" />
+                    Deploy World
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
       </div>
     </Layout>
   )
