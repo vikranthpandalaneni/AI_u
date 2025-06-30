@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { ChatInterface } from '../components/chat/ChatInterface'
 import { Loading } from '../components/ui/Loading'
 import { useWorldStore } from '../stores/worldStore'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { formatDate, getInitials } from '../lib/utils'
 import {
   ArrowLeft,
@@ -30,7 +30,7 @@ import {
 export function WorldViewPage() {
   const { slug } = useParams<{ slug: string }>()
   const { currentWorld, fetchWorld, loading } = useWorldStore()
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
 
