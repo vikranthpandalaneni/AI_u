@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { db, type AIWorld } from '../lib/supabase'
+import { db, type AIWorld, supabase } from '../lib/supabase'
 
 interface WorldState {
   worlds: AIWorld[]
@@ -13,6 +13,7 @@ interface WorldState {
   createWorld: (world: Omit<AIWorld, 'id' | 'created_at' | 'updated_at'>) => Promise<{ data?: AIWorld; error?: any }>
   updateWorld: (id: string, updates: Partial<AIWorld>) => Promise<{ error?: any }>
   deleteWorld: (id: string) => Promise<{ error?: any }>
+  subscribeToWorlds: (userId: string) => any
   setCurrentWorld: (world: AIWorld | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -150,6 +151,64 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       set({ error: 'Failed to delete world', loading: false })
       return { error }
     }
+  },
+
+  subscribeToWorlds: (userId: string) => {
+    // First, fetch initial data
+    get().fetchWorlds(userId)
+
+    // Then, set up real-time subscription
+    const subscription = supabase
+      .channel('worlds-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ai_worlds',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('New world created:', payload.new)
+          const { worlds } = get()
+          set({ worlds: [payload.new as AIWorld, ...worlds] })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'ai_worlds',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('World updated:', payload.new)
+          const { worlds } = get()
+          const updatedWorlds = worlds.map(world =>
+            world.id === payload.new.id ? payload.new as AIWorld : world
+          )
+          set({ worlds: updatedWorlds })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'ai_worlds',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('World deleted:', payload.old)
+          const { worlds } = get()
+          const filteredWorlds = worlds.filter(world => world.id !== payload.old.id)
+          set({ worlds: filteredWorlds })
+        }
+      )
+      .subscribe()
+
+    return subscription
   },
 
   setCurrentWorld: (world: AIWorld | null) => set({ currentWorld: world }),

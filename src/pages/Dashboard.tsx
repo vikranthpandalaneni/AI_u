@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { WorldCard } from '../components/world/WorldCard'
-import { useAuth } from '../contexts/AuthContext'
+import { LoadingSpinner } from '../components/LoadingSpinner'
+import { useAuthStore } from '../stores/authStore'
 import { useWorldStore } from '../stores/worldStore'
 import { formatCurrency } from '../lib/utils'
 import {
@@ -58,14 +59,22 @@ const mockRecentActivity = [
 ]
 
 export function Dashboard() {
-  const { user } = useAuth()
-  const { worlds, loading, fetchWorlds } = useWorldStore()
+  const { user } = useAuthStore()
+  const { worlds, loading, fetchWorlds, subscribeToWorlds } = useWorldStore()
 
   useEffect(() => {
     if (user) {
-      fetchWorlds(user.id)
+      // Subscribe to real-time updates
+      const subscription = subscribeToWorlds(user.id)
+      
+      // Cleanup subscription on unmount
+      return () => {
+        if (subscription) {
+          subscription.unsubscribe()
+        }
+      }
     }
-  }, [user, fetchWorlds])
+  }, [user, subscribeToWorlds])
 
   const userWorlds = worlds.map(world => ({
     ...world,
@@ -81,6 +90,10 @@ export function Dashboard() {
       subscribers: Math.floor(Math.random() * 200) + 20
     }
   }))
+
+  if (loading) {
+    return <LoadingSpinner message="Loading your dashboard..." />
+  }
 
   return (
     <Layout>
@@ -149,9 +162,9 @@ export function Dashboard() {
               <Globe className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.activeWorlds}</div>
+              <div className="text-2xl font-bold">{worlds.length}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-blue-600">2</span> public, <span className="text-orange-600">1</span> private
+                <span className="text-blue-600">{worlds.filter(w => w.public).length}</span> public, <span className="text-orange-600">{worlds.filter(w => !w.public).length}</span> private
               </p>
             </CardContent>
           </Card>
@@ -161,7 +174,6 @@ export function Dashboard() {
           {/* My Worlds */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
-              
               <h2 className="text-2xl font-semibold">My Worlds</h2>
               <Button variant="outline" asChild>
                 <Link to="/create-world">
@@ -171,21 +183,7 @@ export function Dashboard() {
               </Button>
             </div>
 
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader>
-                      <div className="h-4 bg-muted rounded w-3/4" />
-                      <div className="h-3 bg-muted rounded w-1/2" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-20 bg-muted rounded" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : userWorlds.length > 0 ? (
+            {userWorlds.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {userWorlds.map((world) => (
                   <WorldCard key={world.id} world={world} variant="compact" />

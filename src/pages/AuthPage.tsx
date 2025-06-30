@@ -3,14 +3,22 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { isValidEmail } from '../lib/utils'
 import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 export function AuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, loading: authLoading, error: authError, signIn, signUp, clearError } = useAuth()
+  const { 
+    user, 
+    loading: authLoading, 
+    error: authError, 
+    signInWithEmail, 
+    signUpWithEmail, 
+    signInWithGithub,
+    clearError 
+  } = useAuthStore()
   
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [formData, setFormData] = useState({
@@ -87,7 +95,7 @@ export function AuthPage() {
       let result
       
       if (mode === 'signup') {
-        result = await signUp(formData.email, formData.password, {
+        result = await signUpWithEmail(formData.email, formData.password, {
           name: formData.name
         })
         
@@ -95,20 +103,21 @@ export function AuthPage() {
           setSuccessMessage('Account created successfully! Welcome to AI Universe.')
         }
       } else {
-        result = await signIn(formData.email, formData.password)
+        result = await signInWithEmail(formData.email, formData.password)
         
         if (!result.error) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
         }
       }
-      
-      // Note: Navigation will be handled automatically by the useEffect hook
-      // when the auth state changes and user becomes available
     } catch (error) {
       console.error('Unexpected auth error:', error)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleGithubLogin = async () => {
+    await signInWithGithub()
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -266,6 +275,28 @@ export function AuthPage() {
                   mode === 'signup' ? 'Create Account' : 'Sign In'
                 )}
               </Button>
+
+              {/* GitHub Login */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full" 
+                onClick={handleGithubLogin}
+                disabled={isSubmitting}
+              >
+                GitHub
+              </Button>
             </form>
 
             {/* Mode Switch */}
@@ -282,18 +313,6 @@ export function AuthPage() {
                 </button>
               </p>
             </div>
-
-            {/* Forgot Password Link */}
-            {mode === 'signin' && (
-              <div className="mt-4 text-center">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-sm text-muted-foreground hover:text-primary"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            )}
           </CardContent>
         </Card>
 

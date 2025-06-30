@@ -1,9 +1,9 @@
-// FIXED: Enhanced main.tsx with error boundary and theme initialization
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { useAuthStore } from './stores/authStore.ts';
 
 // Initialize theme on app start
 const initializeTheme = () => {
@@ -30,7 +30,13 @@ const initializeTheme = () => {
   }
 };
 
+// Initialize auth
+const initializeAuth = async () => {
+  await useAuthStore.getState().initialize();
+};
+
 initializeTheme();
+initializeAuth();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
