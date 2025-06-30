@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Textarea } from '../components/ui/textarea'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useEventStore } from '../stores/eventStore'
 import { useWorldStore } from '../stores/worldStore'
 import {
@@ -38,7 +38,7 @@ const EVENT_TYPES = [
 ]
 
 export function EventsPage() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { events, loading, error, fetchEvents, createEvent, clearError } = useEventStore()
   const { worlds, fetchWorlds } = useWorldStore()
   

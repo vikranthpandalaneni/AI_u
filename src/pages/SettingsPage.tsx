@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useThemeStore } from '../stores/themeStore'
 import { storage } from '../lib/supabase'
 import { getInitials } from '../lib/utils'
@@ -47,7 +47,7 @@ interface UserFile {
 }
 
 export function SettingsPage() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { theme, setTheme } = useThemeStore()
   const [loading, setLoading] = useState(false)
   const [filesLoading, setFilesLoading] = useState(false)
@@ -56,7 +56,7 @@ export function SettingsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   
   const [profileData, setProfileData] = useState({
-    name: user?.user_metadata?.name || '',
+    name: user?.user_metadata?.name || user?.user_metadata?.full_name || '',
     email: user?.email || '',
     avatar_url: user?.user_metadata?.avatar_url || ''
   })
