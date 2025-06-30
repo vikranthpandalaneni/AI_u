@@ -5,7 +5,7 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuthStore } from '../stores/authStore'
 import { isValidEmail } from '../lib/utils'
-import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Github } from 'lucide-react'
+import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Github, Info } from 'lucide-react'
 
 interface FormErrors {
   email?: string
@@ -169,6 +169,16 @@ export function AuthPage() {
     }
   }
 
+  const handleModeSwitch = () => {
+    const newMode = mode === 'signup' ? 'signin' : 'signup'
+    setMode(newMode)
+    
+    // Clear any existing errors when switching modes
+    clearError()
+    setFormErrors({})
+    setSuccessMessage('')
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -220,11 +230,28 @@ export function AuthPage() {
 
               {/* Error Messages */}
               {(authError || formErrors.general) && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  <p className="text-sm text-red-600 dark:text-red-400">
-                    {authError || formErrors.general}
-                  </p>
+                <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+                      {authError || formErrors.general}
+                    </p>
+                  </div>
+                  {(authError || formErrors.general)?.includes('email or password you entered is incorrect') && mode === 'signin' && (
+                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded text-xs">
+                      <div className="flex items-start gap-2">
+                        <Info className="w-3 h-3 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-blue-600 dark:text-blue-400">
+                          <p className="font-medium mb-1">Need help?</p>
+                          <ul className="space-y-1">
+                            <li>• Double-check your email address and password</li>
+                            <li>• Make sure you have an account - try signing up instead</li>
+                            <li>• Check if your email needs verification</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -357,7 +384,7 @@ export function AuthPage() {
                 {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <button
                   type="button"
-                  onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+                  onClick={handleModeSwitch}
                   className="text-primary hover:underline font-medium"
                   disabled={isSubmitting}
                 >

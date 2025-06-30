@@ -23,6 +23,49 @@ interface AuthState {
   initialize: () => Promise<void>
 }
 
+// Helper function to get user-friendly error messages
+function getUserFriendlyErrorMessage(error: any): string {
+  if (!error) return 'An unexpected error occurred'
+  
+  const message = error.message || error.error_description || error.toString()
+  
+  // Handle specific Supabase error codes
+  if (message.includes('Invalid login credentials')) {
+    return 'The email or password you entered is incorrect. Please check your credentials and try again.'
+  }
+  
+  if (message.includes('Email not confirmed')) {
+    return 'Please check your email and click the confirmation link before signing in.'
+  }
+  
+  if (message.includes('User already registered')) {
+    return 'An account with this email already exists. Please sign in instead.'
+  }
+  
+  if (message.includes('Password should be at least')) {
+    return 'Password must be at least 6 characters long.'
+  }
+  
+  if (message.includes('Unable to validate email address')) {
+    return 'Please enter a valid email address.'
+  }
+  
+  if (message.includes('signup is disabled')) {
+    return 'Account registration is currently disabled. Please contact support.'
+  }
+  
+  if (message.includes('Email rate limit exceeded')) {
+    return 'Too many email attempts. Please wait a few minutes before trying again.'
+  }
+  
+  if (message.includes('Network request failed') || message.includes('fetch')) {
+    return 'Network error. Please check your internet connection and try again.'
+  }
+  
+  // Return the original message if we don't have a specific handler
+  return message
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -42,14 +85,15 @@ export const useAuthStore = create<AuthState>()(
             }
           })
           if (error) {
-            set({ error: error.message, loading: false })
-            return { error }
+            const friendlyMessage = getUserFriendlyErrorMessage(error)
+            set({ error: friendlyMessage, loading: false })
+            return { error: { message: friendlyMessage } }
           }
           return { error: null }
         } catch (error: any) {
-          const errorMessage = error.message || 'GitHub sign in failed'
-          set({ error: errorMessage, loading: false })
-          return { error: { message: errorMessage } }
+          const friendlyMessage = getUserFriendlyErrorMessage(error)
+          set({ error: friendlyMessage, loading: false })
+          return { error: { message: friendlyMessage } }
         }
       },
 
@@ -71,22 +115,24 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           const { data, error } = await supabase.auth.signInWithPassword({
-            email,
+            email: email.trim().toLowerCase(),
             password
           })
           
           if (error) {
-            set({ error: error.message, loading: false })
-            return { error }
+            const friendlyMessage = getUserFriendlyErrorMessage(error)
+            set({ error: friendlyMessage, loading: false })
+            return { error: { message: friendlyMessage } }
           }
 
           console.log('Sign in successful:', data.user?.email)
+          set({ loading: false })
           // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
-          const errorMessage = error.message || 'Sign in failed'
-          set({ error: errorMessage, loading: false })
-          return { error: { message: errorMessage } }
+          const friendlyMessage = getUserFriendlyErrorMessage(error)
+          set({ error: friendlyMessage, loading: false })
+          return { error: { message: friendlyMessage } }
         }
       },
 
@@ -108,7 +154,7 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           const { data, error } = await supabase.auth.signUp({
-            email,
+            email: email.trim().toLowerCase(),
             password,
             options: {
               data: userData || {}
@@ -116,17 +162,19 @@ export const useAuthStore = create<AuthState>()(
           })
           
           if (error) {
-            set({ error: error.message, loading: false })
-            return { error }
+            const friendlyMessage = getUserFriendlyErrorMessage(error)
+            set({ error: friendlyMessage, loading: false })
+            return { error: { message: friendlyMessage } }
           }
 
           console.log('Sign up successful:', data.user?.email)
+          set({ loading: false })
           // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
-          const errorMessage = error.message || 'Sign up failed'
-          set({ error: errorMessage, loading: false })
-          return { error: { message: errorMessage } }
+          const friendlyMessage = getUserFriendlyErrorMessage(error)
+          set({ error: friendlyMessage, loading: false })
+          return { error: { message: friendlyMessage } }
         }
       },
 
@@ -138,7 +186,8 @@ export const useAuthStore = create<AuthState>()(
           
           if (error) {
             console.error('Sign out error:', error)
-            set({ error: error.message, loading: false })
+            const friendlyMessage = getUserFriendlyErrorMessage(error)
+            set({ error: friendlyMessage, loading: false })
             throw error
           } else {
             console.log('Sign out successful')
@@ -152,7 +201,8 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error: any) {
           console.error('Sign out error:', error)
-          set({ error: error.message || 'Sign out failed', loading: false })
+          const friendlyMessage = getUserFriendlyErrorMessage(error)
+          set({ error: friendlyMessage, loading: false })
           throw error
         }
       },
@@ -174,7 +224,8 @@ export const useAuthStore = create<AuthState>()(
           
           if (error) {
             console.error('Error getting session:', error)
-            set({ error: error.message, loading: false, initialized: true })
+            const friendlyMessage = getUserFriendlyErrorMessage(error)
+            set({ error: friendlyMessage, loading: false, initialized: true })
             return
           }
 
@@ -209,8 +260,9 @@ export const useAuthStore = create<AuthState>()(
 
         } catch (error: any) {
           console.error('Auth initialization error:', error)
+          const friendlyMessage = getUserFriendlyErrorMessage(error)
           set({ 
-            error: error.message || 'Failed to initialize auth', 
+            error: friendlyMessage, 
             loading: false,
             initialized: true 
           })
