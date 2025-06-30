@@ -8,6 +8,7 @@ interface AuthState {
   session: Session | null
   loading: boolean
   error: string | null
+  initialized: boolean
   
   // Actions
   signInWithGithub: () => Promise<void>
@@ -29,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
       session: null,
       loading: true,
       error: null,
+      initialized: false,
 
       signInWithGithub: async () => {
         set({ loading: true, error: null })
@@ -60,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
             return { error }
           }
 
+          // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
           const errorMessage = error.message || 'Sign in failed'
@@ -84,6 +87,7 @@ export const useAuthStore = create<AuthState>()(
             return { error }
           }
 
+          // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
           const errorMessage = error.message || 'Sign up failed'
@@ -95,15 +99,19 @@ export const useAuthStore = create<AuthState>()(
       signOut: async () => {
         set({ loading: true, error: null })
         try {
-          // Clear state immediately for better UX
-          set({ user: null, session: null })
-          
           const { error } = await supabase.auth.signOut()
+          
           if (error) {
             console.error('Sign out error:', error)
             set({ error: error.message, loading: false })
           } else {
-            set({ loading: false })
+            // Clear state immediately
+            set({ 
+              user: null, 
+              session: null, 
+              loading: false,
+              error: null 
+            })
           }
         } catch (error: any) {
           console.error('Sign out error:', error)
@@ -118,6 +126,9 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null }),
 
       initialize: async () => {
+        const { initialized } = get()
+        if (initialized) return
+
         set({ loading: true })
         try {
           // Get initial session
@@ -125,14 +136,15 @@ export const useAuthStore = create<AuthState>()(
           
           if (error) {
             console.error('Error getting session:', error)
-            set({ error: error.message, loading: false })
+            set({ error: error.message, loading: false, initialized: true })
             return
           }
 
           set({ 
             session, 
             user: session?.user ?? null, 
-            loading: false 
+            loading: false,
+            initialized: true
           })
 
           // Create user profile if session exists
@@ -159,7 +171,11 @@ export const useAuthStore = create<AuthState>()(
 
         } catch (error: any) {
           console.error('Auth initialization error:', error)
-          set({ error: error.message || 'Failed to initialize auth', loading: false })
+          set({ 
+            error: error.message || 'Failed to initialize auth', 
+            loading: false,
+            initialized: true 
+          })
         }
       }
     }),
@@ -167,7 +183,8 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({ 
         user: state.user, 
-        session: state.session 
+        session: state.session,
+        initialized: state.initialized
       })
     }
   )
@@ -191,7 +208,7 @@ async function createUserProfile(user: User) {
           {
             id: user.id,
             email: user.email!,
-            name: user.user_metadata?.name || '',
+            name: user.user_metadata?.name || user.user_metadata?.full_name || '',
             avatar_url: user.user_metadata?.avatar_url || '',
             plan: 'free'
           }

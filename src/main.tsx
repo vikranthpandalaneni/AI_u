@@ -31,9 +31,9 @@ const initializeTheme = () => {
   }
 };
 
-// Initialize auth
-const initializeAuth = async () => {
-  await useAuthStore.getState().initialize();
+// Initialize auth immediately
+const initializeAuth = () => {
+  useAuthStore.getState().initialize();
 };
 
 initializeTheme();

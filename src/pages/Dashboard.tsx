@@ -60,7 +60,7 @@ const mockRecentActivity = [
 
 export function Dashboard() {
   const { user } = useAuthStore()
-  const { worlds, loading, fetchWorlds, subscribeToWorlds } = useWorldStore()
+  const { worlds, loading, subscribeToWorlds } = useWorldStore()
 
   useEffect(() => {
     if (user) {
@@ -79,7 +79,7 @@ export function Dashboard() {
   const userWorlds = worlds.map(world => ({
     ...world,
     user: {
-      name: user?.user_metadata?.name,
+      name: user?.user_metadata?.name || user?.user_metadata?.full_name,
       avatar_url: user?.user_metadata?.avatar_url,
       email: user?.email || ''
     },
@@ -103,7 +103,7 @@ export function Dashboard() {
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {user?.user_metadata?.name || 'Creator'}! Here's what's happening with your AI worlds.
+              Welcome back, {user?.user_metadata?.name || user?.user_metadata?.full_name || 'Creator'}! Here's what's happening with your AI worlds.
             </p>
           </div>
           

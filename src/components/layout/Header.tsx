@@ -118,9 +118,9 @@ export function Header({ onMenuClick }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.name} />
+                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.name || user.email} />
                     <AvatarFallback>
-                      {getInitials(user.user_metadata?.name || user.email || 'User')}
+                      {getInitials(user.user_metadata?.name || user.user_metadata?.full_name || user.email || 'User')}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -128,8 +128,8 @@ export function Header({ onMenuClick }: HeaderProps) {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    {user.user_metadata?.name && (
-                      <p className="font-medium">{user.user_metadata.name}</p>
+                    {(user.user_metadata?.name || user.user_metadata?.full_name) && (
+                      <p className="font-medium">{user.user_metadata.name || user.user_metadata.full_name}</p>
                     )}
                     <p className="w-[200px] truncate text-sm text-muted-foreground">
                       {user.email}

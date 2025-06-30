@@ -32,6 +32,15 @@ export function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
+  // Check URL params for mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search)
+    const urlMode = urlParams.get('mode')
+    if (urlMode === 'signup') {
+      setMode('signup')
+    }
+  }, [location])
+
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
@@ -100,13 +109,14 @@ export function AuthPage() {
         })
         
         if (!result.error) {
-          setSuccessMessage('Account created successfully! Welcome to AI Universe.')
+          setSuccessMessage('Account created successfully! Please check your email to verify your account.')
         }
       } else {
         result = await signInWithEmail(formData.email, formData.password)
         
         if (!result.error) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
+          // Navigation will be handled by the useEffect hook
         }
       }
     } catch (error) {

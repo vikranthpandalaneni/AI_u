@@ -9,15 +9,16 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/auth' }: ProtectedRouteProps) {
-  const { session, loading } = useAuthStore()
+  const { user, loading, initialized } = useAuthStore()
   const location = useLocation()
 
-  if (loading) {
+  // Show loading while auth is initializing or loading
+  if (!initialized || loading) {
     return <LoadingSpinner message="Checking authentication..." />
   }
 
-  if (!session) {
-    // Save the attempted location for redirecting after login
+  // Redirect to auth if no user
+  if (!user) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />
   }
 
