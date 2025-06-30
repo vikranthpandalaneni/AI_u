@@ -97,14 +97,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signOut: async () => {
-        set({ loading: true, error: null })
         try {
+          set({ loading: true, error: null })
+          
           const { error } = await supabase.auth.signOut()
           
           if (error) {
             console.error('Sign out error:', error)
             set({ error: error.message, loading: false })
+            throw error
           } else {
+            console.log('Sign out successful')
             // Clear state immediately
             set({ 
               user: null, 
@@ -116,6 +119,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           console.error('Sign out error:', error)
           set({ error: error.message || 'Sign out failed', loading: false })
+          throw error
         }
       },
 

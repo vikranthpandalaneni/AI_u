@@ -49,6 +49,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     try {
       await signOut()
       // Navigation will be handled by the useEffect above
+      navigate('/')
     } catch (error) {
       console.error('Sign out error:', error)
       // Force navigation even if signOut fails
