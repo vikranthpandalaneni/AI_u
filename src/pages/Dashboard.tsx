@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { WorldCard } from '../components/world/WorldCard'
 import { Loading } from '../components/ui/Loading'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useWorldStore } from '../stores/worldStore'
 import { formatCurrency } from '../lib/utils'
 import {
@@ -59,7 +59,7 @@ const mockRecentActivity = [
 ]
 
 export function Dashboard() {
-  const { user } = useAuth()
+  const { user } = useAuthStore()
   const { worlds, loading, fetchWorlds } = useWorldStore()
 
   useEffect(() => {

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { isValidEmail } from '../lib/utils'
 import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Github } from 'lucide-react'
 
@@ -18,7 +18,7 @@ interface FormErrors {
 export function AuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, loading: authLoading, error: authError, signIn, signUp, signInWithGithub, clearError } = useAuth()
+  const { user, loading: authLoading, error: authError, signInWithEmail, signUpWithEmail, signInWithGithub, clearError } = useAuthStore()
   
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [formData, setFormData] = useState({
@@ -110,7 +110,7 @@ export function AuthPage() {
       let result
       
       if (mode === 'signup') {
-        result = await signUp(formData.email, formData.password, {
+        result = await signUpWithEmail(formData.email, formData.password, {
           name: formData.name
         })
         
@@ -118,7 +118,7 @@ export function AuthPage() {
           setSuccessMessage('Account created successfully! Please check your email to verify your account.')
         }
       } else {
-        result = await signIn(formData.email, formData.password)
+        result = await signInWithEmail(formData.email, formData.password)
         
         if (!result.error) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')

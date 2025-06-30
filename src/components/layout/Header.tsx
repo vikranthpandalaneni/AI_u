@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { useThemeStore } from '../../stores/themeStore'
 import { 
   Moon, 
@@ -28,7 +28,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading } = useAuthStore()
   const { theme, setTheme } = useThemeStore()
   const navigate = useNavigate()
 
@@ -48,7 +48,6 @@ export function Header({ onMenuClick }: HeaderProps) {
   const handleSignOut = async () => {
     try {
       await signOut()
-      // Navigation will be handled by the useEffect above
       navigate('/')
     } catch (error) {
       console.error('Sign out error:', error)

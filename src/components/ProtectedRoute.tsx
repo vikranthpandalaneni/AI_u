@@ -1,6 +1,6 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuthStore } from '../stores/authStore'
 import { Loading } from './ui/Loading'
 
 interface ProtectedRouteProps {
@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, redirectTo = '/auth' }: ProtectedRouteProps) {
-  const { user, loading } = useAuth()
+  const { user, loading } = useAuthStore()
   const location = useLocation()
 
   if (loading) {

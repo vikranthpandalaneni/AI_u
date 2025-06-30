@@ -11,7 +11,7 @@ interface AuthState {
   initialized: boolean
   
   // Actions
-  signInWithGithub: () => Promise<void>
+  signInWithGithub: () => Promise<{ error?: any }>
   signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>
   signUpWithEmail: (email: string, password: string, userData?: any) => Promise<{ error?: any }>
   signOut: () => Promise<void>
@@ -43,14 +43,32 @@ export const useAuthStore = create<AuthState>()(
           })
           if (error) {
             set({ error: error.message, loading: false })
+            return { error }
           }
+          return { error: null }
         } catch (error: any) {
-          set({ error: error.message || 'Failed to sign in', loading: false })
+          const errorMessage = error.message || 'GitHub sign in failed'
+          set({ error: errorMessage, loading: false })
+          return { error: { message: errorMessage } }
         }
       },
 
       signInWithEmail: async (email: string, password: string) => {
         set({ loading: true, error: null })
+        
+        // Client-side validation
+        if (!email || !email.includes('@')) {
+          const errorMsg = 'Please enter a valid email address'
+          set({ error: errorMsg, loading: false })
+          return { error: { message: errorMsg } }
+        }
+        
+        if (!password) {
+          const errorMsg = 'Password is required'
+          set({ error: errorMsg, loading: false })
+          return { error: { message: errorMsg } }
+        }
+        
         try {
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -62,6 +80,7 @@ export const useAuthStore = create<AuthState>()(
             return { error }
           }
 
+          console.log('Sign in successful:', data.user?.email)
           // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
@@ -73,6 +92,20 @@ export const useAuthStore = create<AuthState>()(
 
       signUpWithEmail: async (email: string, password: string, userData?: any) => {
         set({ loading: true, error: null })
+        
+        // Client-side validation
+        if (!email || !email.includes('@')) {
+          const errorMsg = 'Please enter a valid email address'
+          set({ error: errorMsg, loading: false })
+          return { error: { message: errorMsg } }
+        }
+        
+        if (!password || password.length < 6) {
+          const errorMsg = 'Password must be at least 6 characters long'
+          set({ error: errorMsg, loading: false })
+          return { error: { message: errorMsg } }
+        }
+        
         try {
           const { data, error } = await supabase.auth.signUp({
             email,
@@ -87,6 +120,7 @@ export const useAuthStore = create<AuthState>()(
             return { error }
           }
 
+          console.log('Sign up successful:', data.user?.email)
           // Auth state will be updated by the listener
           return { error: null }
         } catch (error: any) {
