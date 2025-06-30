@@ -1,18 +1,59 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.')
+// Enhanced error checking for environment variables
+if (!supabaseUrl) {
+  console.error('Missing VITE_SUPABASE_URL environment variable')
+  throw new Error('Supabase URL is required. Please check your .env file and ensure VITE_SUPABASE_URL is set.')
 }
+
+if (!supabaseAnonKey) {
+  console.error('Missing VITE_SUPABASE_ANON_KEY environment variable')
+  throw new Error('Supabase Anon Key is required. Please check your .env file and ensure VITE_SUPABASE_ANON_KEY is set.')
+}
+
+// Validate URL format
+try {
+  new URL(supabaseUrl)
+} catch (error) {
+  console.error('Invalid VITE_SUPABASE_URL format:', supabaseUrl)
+  throw new Error('Invalid Supabase URL format. Please check your .env file.')
+}
+
+console.log('Supabase configuration:', {
+  url: supabaseUrl,
+  hasAnonKey: !!supabaseAnonKey,
+  anonKeyLength: supabaseAnonKey?.length
+})
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'ai-universe@1.0.0'
+    }
+  },
+  db: {
+    schema: 'public'
   }
+})
+
+// Test connection on initialization
+supabase.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error('Supabase connection test failed:', error)
+  } else {
+    console.log('Supabase connection successful')
+  }
+}).catch(error => {
+  console.error('Supabase initialization error:', error)
 })
 
 // Database types
@@ -112,44 +153,67 @@ export interface MemeEntry {
   created_at: string
 }
 
-// Database helpers with better error handling and user-friendly messages
+// Enhanced database helpers with better error handling
 export const db = {
   // Users
   getUser: async (id: string) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', id)
         .single()
-    } catch (error) {
+      
+      if (error) {
+        console.error('Get user error:', error)
+        throw new Error(`Failed to load user profile: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Get user error:', error)
-      throw new Error('Failed to load user profile')
+      return { data: null, error: error.message || 'Failed to load user profile' }
     }
   },
 
   insertUser: async (user: Omit<User, 'created_at' | 'updated_at'>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('users')
         .insert(user)
         .select()
         .single()
-    } catch (error) {
+      
+      if (error) {
+        console.error('Insert user error:', error)
+        throw new Error(`Failed to create user profile: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Insert user error:', error)
-      throw new Error('Failed to create user profile')
+      return { data: null, error: error.message || 'Failed to create user profile' }
     }
   },
 
   updateUser: async (id: string, updates: Partial<User>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('users')
         .update(updates)
         .eq('id', id)
-    } catch (error) {
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Update user error:', error)
+        throw new Error(`Failed to update user profile: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Update user error:', error)
-      throw new Error('Failed to update user profile')
+      return { data: null, error: error.message || 'Failed to update user profile' }
     }
   },
 
@@ -164,66 +228,103 @@ export const db = {
         query = query.eq('public', true)
       }
       
-      return await query.order('created_at', { ascending: false })
-    } catch (error) {
+      const { data, error } = await query.order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Get worlds error:', error)
+        throw new Error(`Failed to load worlds: ${error.message}`)
+      }
+      
+      return { data: data || [], error: null }
+    } catch (error: any) {
       console.error('Get worlds error:', error)
-      throw new Error('Failed to load worlds')
+      return { data: [], error: error.message || 'Failed to load worlds' }
     }
   },
 
   getWorld: async (slug: string) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('ai_worlds')
         .select('*')
         .eq('slug', slug)
         .single()
-    } catch (error) {
+      
+      if (error) {
+        console.error('Get world error:', error)
+        throw new Error(`Failed to load world: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Get world error:', error)
-      throw new Error('Failed to load world')
+      return { data: null, error: error.message || 'Failed to load world' }
     }
   },
 
   createWorld: async (world: Omit<AIWorld, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('ai_worlds')
         .insert(world)
         .select()
         .single()
-    } catch (error: any) {
-      console.error('Create world error:', error)
       
-      // Map specific database errors to user-friendly messages
-      if (error.message?.includes('duplicate key value violates unique constraint "ai_worlds_slug_key"')) {
-        throw new Error('This world name is already taken. Please choose another.')
+      if (error) {
+        console.error('Create world error:', error)
+        
+        // Map specific database errors to user-friendly messages
+        if (error.message?.includes('duplicate key value violates unique constraint "ai_worlds_slug_key"')) {
+          throw new Error('This world name is already taken. Please choose another.')
+        }
+        
+        throw new Error(`Failed to create world: ${error.message}`)
       }
       
-      throw new Error('Failed to create world. Please try again.')
+      return { data, error: null }
+    } catch (error: any) {
+      console.error('Create world error:', error)
+      return { data: null, error: error.message || 'Failed to create world. Please try again.' }
     }
   },
 
   updateWorld: async (id: string, updates: Partial<AIWorld>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('ai_worlds')
         .update(updates)
         .eq('id', id)
-    } catch (error) {
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Update world error:', error)
+        throw new Error(`Failed to update world: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Update world error:', error)
-      throw new Error('Failed to update world')
+      return { data: null, error: error.message || 'Failed to update world' }
     }
   },
 
   deleteWorld: async (id: string) => {
     try {
-      return await supabase
+      const { error } = await supabase
         .from('ai_worlds')
         .delete()
         .eq('id', id)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Delete world error:', error)
+        throw new Error(`Failed to delete world: ${error.message}`)
+      }
+      
+      return { error: null }
+    } catch (error: any) {
       console.error('Delete world error:', error)
-      throw new Error('Failed to delete world')
+      return { error: error.message || 'Failed to delete world' }
     }
   },
 
@@ -238,61 +339,96 @@ export const db = {
         query = query.eq('world_id', worldId)
       }
       
-      return await query.order('start_time', { ascending: true })
-    } catch (error) {
+      const { data, error } = await query.order('start_time', { ascending: true })
+      
+      if (error) {
+        console.error('Get events error:', error)
+        throw new Error(`Failed to load events: ${error.message}`)
+      }
+      
+      return { data: data || [], error: null }
+    } catch (error: any) {
       console.error('Get events error:', error)
-      throw new Error('Failed to load events')
+      return { data: [], error: error.message || 'Failed to load events' }
     }
   },
 
   createEvent: async (event: Omit<WorldEvent, 'id' | 'created_at'>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('world_events')
         .insert(event)
         .select(`*, ai_worlds!inner(title, user_id)`)
         .single()
-    } catch (error) {
+      
+      if (error) {
+        console.error('Create event error:', error)
+        throw new Error(`Failed to create event: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Create event error:', error)
-      throw new Error('Failed to create event')
+      return { data: null, error: error.message || 'Failed to create event' }
     }
   },
 
   updateEvent: async (id: string, updates: Partial<WorldEvent>) => {
     try {
-      return await supabase
+      const { data, error } = await supabase
         .from('world_events')
         .update(updates)
         .eq('id', id)
         .select(`*, ai_worlds!inner(title, user_id)`)
         .single()
-    } catch (error) {
+      
+      if (error) {
+        console.error('Update event error:', error)
+        throw new Error(`Failed to update event: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Update event error:', error)
-      throw new Error('Failed to update event')
+      return { data: null, error: error.message || 'Failed to update event' }
     }
   },
 
   deleteEvent: async (id: string) => {
     try {
-      return await supabase
+      const { error } = await supabase
         .from('world_events')
         .delete()
         .eq('id', id)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Delete event error:', error)
+        throw new Error(`Failed to delete event: ${error.message}`)
+      }
+      
+      return { error: null }
+    } catch (error: any) {
       console.error('Delete event error:', error)
-      throw new Error('Failed to delete event')
+      return { error: error.message || 'Failed to delete event' }
     }
   },
 
   // Analytics
   trackEvent: async (event: Omit<AnalyticsEvent, 'id' | 'timestamp'>) => {
     try {
-      return await supabase
+      const { error } = await supabase
         .from('analytics_events')
         .insert(event)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Track event error:', error)
+        throw new Error(`Failed to track event: ${error.message}`)
+      }
+      
+      return { error: null }
+    } catch (error: any) {
       console.error('Track event error:', error)
-      throw new Error('Failed to track event')
+      return { error: error.message || 'Failed to track event' }
     }
   },
 
@@ -311,10 +447,17 @@ export const db = {
         query = query.lte('timestamp', endDate)
       }
       
-      return await query.order('timestamp', { ascending: false })
-    } catch (error) {
+      const { data, error } = await query.order('timestamp', { ascending: false })
+      
+      if (error) {
+        console.error('Get analytics error:', error)
+        throw new Error(`Failed to load analytics: ${error.message}`)
+      }
+      
+      return { data: data || [], error: null }
+    } catch (error: any) {
       console.error('Get analytics error:', error)
-      throw new Error('Failed to load analytics')
+      return { data: [], error: error.message || 'Failed to load analytics' }
     }
   }
 }
@@ -323,23 +466,37 @@ export const db = {
 export const storage = {
   uploadFile: async (bucket: string, path: string, file: File) => {
     try {
-      return await supabase.storage
+      const { data, error } = await supabase.storage
         .from(bucket)
         .upload(path, file)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Upload file error:', error)
+        throw new Error(`Failed to upload file: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Upload file error:', error)
-      throw new Error('Failed to upload file')
+      return { data: null, error: error.message || 'Failed to upload file' }
     }
   },
 
   getUserFiles: async (userId: string) => {
     try {
-      return await supabase.storage
+      const { data, error } = await supabase.storage
         .from('user-files')
         .list(userId)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Get user files error:', error)
+        throw new Error(`Failed to load files: ${error.message}`)
+      }
+      
+      return { data: data || [], error: null }
+    } catch (error: any) {
       console.error('Get user files error:', error)
-      throw new Error('Failed to load files')
+      return { data: [], error: error.message || 'Failed to load files' }
     }
   },
 
@@ -352,23 +509,37 @@ export const storage = {
   // SECURE: Create signed URLs for private file downloads
   createSignedUrl: async (bucket: string, path: string, expiresIn: number = 60) => {
     try {
-      return await supabase.storage
+      const { data, error } = await supabase.storage
         .from(bucket)
         .createSignedUrl(path, expiresIn)
-    } catch (error) {
+      
+      if (error) {
+        console.error('Create signed URL error:', error)
+        throw new Error(`Failed to create download link: ${error.message}`)
+      }
+      
+      return { data, error: null }
+    } catch (error: any) {
       console.error('Create signed URL error:', error)
-      throw new Error('Failed to create download link')
+      return { data: null, error: error.message || 'Failed to create download link' }
     }
   },
 
   deleteFile: async (bucket: string, path: string) => {
     try {
-      return await supabase.storage
+      const { error } = await supabase.storage
         .from(bucket)
         .remove([path])
-    } catch (error) {
+      
+      if (error) {
+        console.error('Delete file error:', error)
+        throw new Error(`Failed to delete file: ${error.message}`)
+      }
+      
+      return { error: null }
+    } catch (error: any) {
       console.error('Delete file error:', error)
-      throw new Error('Failed to delete file')
+      return { error: error.message || 'Failed to delete file' }
     }
   }
 }
