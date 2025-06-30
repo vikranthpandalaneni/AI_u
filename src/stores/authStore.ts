@@ -198,9 +198,14 @@ async function createUserProfile(user: User) {
       .from('users')
       .select('id')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (fetchError && fetchError.code === 'PGRST116') {
+    if (fetchError) {
+      console.error('Error checking user profile:', fetchError)
+      return
+    }
+
+    if (!existingUser) {
       // User doesn't exist, create profile
       const { error: insertError } = await supabase
         .from('users')
@@ -219,10 +224,8 @@ async function createUserProfile(user: User) {
       } else {
         console.log('User profile created successfully')
       }
-    } else if (existingUser) {
+    } else {
       console.log('User profile already exists')
-    } else if (fetchError) {
-      console.error('Error checking user profile:', fetchError)
     }
   } catch (error) {
     console.error('Error in createUserProfile:', error)
