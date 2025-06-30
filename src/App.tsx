@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { LandingPage } from './pages/LandingPage'
@@ -12,32 +12,32 @@ import { AnalyticsPage } from './pages/AnalyticsPage'
 import { CommunityPage } from './pages/CommunityPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { LoadingSpinner } from './components/LoadingSpinner'
+import { Loading } from './components/ui/Loading'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { useAuthStore } from './stores/authStore'
 
 // App content component that uses auth context
 function AppContent() {
-  const { initialize, initialized } = useAuthStore()
-
-  useEffect(() => {
-    if (!initialized) {
-      initialize()
-    }
-  }, [initialize, initialized])
-
-  if (!initialized) {
-    return <LoadingSpinner message="Initializing AI Universe..." />
-  }
-
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/explore" element={<ExplorePage />} />
       <Route path="/events" element={<EventsPage />} />
+      
+      {/* World routes with nested structure */}
       <Route path="/w/:slug" element={<WorldViewPage />} />
+      <Route path="/world/:id" element={<WorldViewPage />} />
+      <Route path="/world/:id/settings" element={
+        <ProtectedRoute>
+          <SettingsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/world/:id/analytics" element={
+        <ProtectedRoute>
+          <AnalyticsPage />
+        </ProtectedRoute>
+      } />
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={
@@ -77,7 +77,7 @@ function App() {
     <ErrorBoundary>
       <Router>
         <AuthProvider>
-          <Suspense fallback={<LoadingSpinner message="Loading AI Universe..." />}>
+          <Suspense fallback={<Loading variant="page" message="Loading AI Universe..." showLogo />}>
             <AppContent />
           </Suspense>
         </AuthProvider>

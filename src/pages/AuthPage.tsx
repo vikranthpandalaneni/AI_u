@@ -5,7 +5,15 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { useAuth } from '../contexts/AuthContext'
 import { isValidEmail } from '../lib/utils'
-import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { Sparkles, Eye, EyeOff, AlertCircle, CheckCircle, Loader2, Github } from 'lucide-react'
+
+interface FormErrors {
+  email?: string
+  password?: string
+  confirmPassword?: string
+  name?: string
+  general?: string
+}
 
 export function AuthPage() {
   const navigate = useNavigate()
@@ -20,7 +28,7 @@ export function AuthPage() {
     name: ''
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -54,27 +62,32 @@ export function AuthPage() {
     })
   }, [mode, clearError])
 
-  const validateForm = () => {
-    const errors: Record<string, string> = {}
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {}
 
+    // Email validation
     if (!formData.email) {
       errors.email = 'Email is required'
     } else if (!isValidEmail(formData.email)) {
       errors.email = 'Please enter a valid email address'
     }
 
+    // Password validation
     if (!formData.password) {
       errors.password = 'Password is required'
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters'
     }
 
+    // Signup-specific validation
     if (mode === 'signup') {
       if (!formData.name.trim()) {
         errors.name = 'Name is required'
       }
       
-      if (formData.password !== formData.confirmPassword) {
+      if (!formData.confirmPassword) {
+        errors.confirmPassword = 'Please confirm your password'
+      } else if (formData.password !== formData.confirmPassword) {
         errors.confirmPassword = 'Passwords do not match'
       }
     }
@@ -110,23 +123,47 @@ export function AuthPage() {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
         }
       }
+
+      if (result.error) {
+        setFormErrors({ general: result.error.message })
+      }
     } catch (error) {
       console.error('Unexpected auth error:', error)
+      setFormErrors({ general: 'An unexpected error occurred. Please try again.' })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleGithubLogin = async () => {
-    await signInWithGithub()
+    setIsSubmitting(true)
+    clearError()
+    setFormErrors({})
+    
+    try {
+      const result = await signInWithGithub()
+      if (result.error) {
+        setFormErrors({ general: result.error.message })
+      }
+    } catch (error) {
+      console.error('GitHub login error:', error)
+      setFormErrors({ general: 'GitHub login failed. Please try again.' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     
     // Clear field error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: '' }))
+    if (formErrors[field as keyof FormErrors]) {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+    
+    // Clear general error when user makes changes
+    if (formErrors.general) {
+      setFormErrors(prev => ({ ...prev, general: undefined }))
     }
   }
 
@@ -179,11 +216,13 @@ export function AuthPage() {
                 </div>
               )}
 
-              {/* Error Message */}
-              {authError && (
+              {/* Error Messages */}
+              {(authError || formErrors.general) && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{authError}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {authError || formErrors.general}
+                  </p>
                 </div>
               )}
 
@@ -197,9 +236,11 @@ export function AuthPage() {
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className={formErrors.name ? 'border-red-500' : ''}
                     disabled={isSubmitting}
+                    aria-invalid={!!formErrors.name}
+                    aria-describedby={formErrors.name ? 'name-error' : undefined}
                   />
                   {formErrors.name && (
-                    <p className="text-sm text-red-500 mt-1">{formErrors.name}</p>
+                    <p id="name-error" className="text-sm text-red-500 mt-1">{formErrors.name}</p>
                   )}
                 </div>
               )}
@@ -213,9 +254,11 @@ export function AuthPage() {
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className={formErrors.email ? 'border-red-500' : ''}
                   disabled={isSubmitting}
+                  aria-invalid={!!formErrors.email}
+                  aria-describedby={formErrors.email ? 'email-error' : undefined}
                 />
                 {formErrors.email && (
-                  <p className="text-sm text-red-500 mt-1">{formErrors.email}</p>
+                  <p id="email-error" className="text-sm text-red-500 mt-1">{formErrors.email}</p>
                 )}
               </div>
 
@@ -228,6 +271,8 @@ export function AuthPage() {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className={formErrors.password ? 'border-red-500' : ''}
                   disabled={isSubmitting}
+                  aria-invalid={!!formErrors.password}
+                  aria-describedby={formErrors.password ? 'password-error' : undefined}
                 />
                 <Button
                   type="button"
@@ -236,11 +281,12 @@ export function AuthPage() {
                   className="absolute right-0 top-0 h-full px-3"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isSubmitting}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
                 {formErrors.password && (
-                  <p className="text-sm text-red-500 mt-1">{formErrors.password}</p>
+                  <p id="password-error" className="text-sm text-red-500 mt-1">{formErrors.password}</p>
                 )}
               </div>
 
@@ -254,9 +300,11 @@ export function AuthPage() {
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     className={formErrors.confirmPassword ? 'border-red-500' : ''}
                     disabled={isSubmitting}
+                    aria-invalid={!!formErrors.confirmPassword}
+                    aria-describedby={formErrors.confirmPassword ? 'confirm-password-error' : undefined}
                   />
                   {formErrors.confirmPassword && (
-                    <p className="text-sm text-red-500 mt-1">{formErrors.confirmPassword}</p>
+                    <p id="confirm-password-error" className="text-sm text-red-500 mt-1">{formErrors.confirmPassword}</p>
                   )}
                 </div>
               )}
@@ -296,6 +344,7 @@ export function AuthPage() {
                 onClick={handleGithubLogin}
                 disabled={isSubmitting}
               >
+                <Github className="mr-2 h-4 w-4" />
                 GitHub
               </Button>
             </form>

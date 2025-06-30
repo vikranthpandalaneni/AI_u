@@ -12,7 +12,9 @@ import {
   LogOut, 
   Sparkles,
   Menu,
-  Loader2
+  Loader2,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -22,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { getInitials } from '../../lib/utils'
+import { useState } from 'react'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -31,15 +34,31 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut, loading } = useAuth()
   const { theme, setTheme } = useThemeStore()
   const navigate = useNavigate()
+  const [logoutLoading, setLogoutLoading] = useState(false)
+  const [logoutMessage, setLogoutMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   const handleSignOut = async () => {
+    setLogoutLoading(true)
+    setLogoutMessage(null)
+    
     try {
       await signOut()
-      navigate('/')
+      setLogoutMessage({ type: 'success', text: 'Successfully signed out' })
+      
+      // Redirect after a brief delay to show success message
+      setTimeout(() => {
+        navigate('/')
+      }, 1000)
     } catch (error) {
       console.error('Sign out error:', error)
+      setLogoutMessage({ type: 'error', text: 'Failed to sign out. Please try again.' })
+      
       // Force navigation even if signOut fails
-      navigate('/')
+      setTimeout(() => {
+        navigate('/')
+      }, 2000)
+    } finally {
+      setLogoutLoading(false)
     }
   }
 
@@ -57,6 +76,7 @@ export function Header({ onMenuClick }: HeaderProps) {
               size="icon"
               onClick={onMenuClick}
               className="md:hidden"
+              aria-label="Toggle menu"
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -101,6 +121,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             size="icon"
             onClick={toggleTheme}
             className="h-9 w-9"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
             {theme === 'dark' ? (
               <Sun className="h-4 w-4" />
@@ -118,7 +139,10 @@ export function Header({ onMenuClick }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.name || user.email} />
+                    <AvatarImage 
+                      src={user.user_metadata?.avatar_url} 
+                      alt={user.user_metadata?.name || user.email} 
+                    />
                     <AvatarFallback>
                       {getInitials(user.user_metadata?.name || user.user_metadata?.full_name || user.email || 'User')}
                     </AvatarFallback>
@@ -136,6 +160,26 @@ export function Header({ onMenuClick }: HeaderProps) {
                     </p>
                   </div>
                 </div>
+                
+                {/* Logout Message */}
+                {logoutMessage && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                      <div className={`flex items-center gap-2 text-sm ${
+                        logoutMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {logoutMessage.type === 'success' ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4" />
+                        )}
+                        {logoutMessage.text}
+                      </div>
+                    </div>
+                  </>
+                )}
+                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   <User className="mr-2 h-4 w-4" />
@@ -146,9 +190,18 @@ export function Header({ onMenuClick }: HeaderProps) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
+                <DropdownMenuItem onClick={handleSignOut} disabled={logoutLoading}>
+                  {logoutLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing out...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign out
+                    </>
+                  )}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

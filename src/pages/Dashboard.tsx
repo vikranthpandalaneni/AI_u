@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { WorldCard } from '../components/world/WorldCard'
-import { LoadingSpinner } from '../components/LoadingSpinner'
+import { Loading } from '../components/ui/Loading'
 import { useAuth } from '../contexts/AuthContext'
 import { useWorldStore } from '../stores/worldStore'
 import { formatCurrency } from '../lib/utils'
@@ -84,7 +84,7 @@ export function Dashboard() {
   }))
 
   if (loading) {
-    return <LoadingSpinner message="Loading your dashboard..." />
+    return <Loading variant="page" message="Loading your dashboard..." showLogo />
   }
 
   return (
