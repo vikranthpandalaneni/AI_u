@@ -45,6 +45,7 @@ export function AuthPage() {
   useEffect(() => {
     if (user && !authLoading) {
       const from = location.state?.from?.pathname || '/dashboard'
+      console.log('User authenticated, redirecting to:', from)
       navigate(from, { replace: true })
     }
   }, [user, authLoading, navigate, location])
@@ -114,15 +115,24 @@ export function AuthPage() {
           name: formData.name
         })
         
-        if (!result.error) {
-          setSuccessMessage('Account created successfully! Please check your email to verify your account.')
+        if (result.success) {
+          setSuccessMessage('Account created successfully! Redirecting to your dashboard...')
+          // Small delay to show success message, then redirect
+          setTimeout(() => {
+            const from = location.state?.from?.pathname || '/dashboard'
+            navigate(from, { replace: true })
+          }, 1500)
         }
       } else {
         result = await signInWithEmail(formData.email, formData.password)
         
-        if (!result.error) {
+        if (result.success) {
           setSuccessMessage('Welcome back! Redirecting to your dashboard...')
-          // Navigation will be handled by the useEffect above
+          // Small delay to show success message, then redirect
+          setTimeout(() => {
+            const from = location.state?.from?.pathname || '/dashboard'
+            navigate(from, { replace: true })
+          }, 1500)
         }
       }
 

@@ -12,8 +12,8 @@ interface AuthState {
   
   // Actions
   signInWithGithub: () => Promise<{ error?: any }>
-  signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>
-  signUpWithEmail: (email: string, password: string, userData?: any) => Promise<{ error?: any }>
+  signInWithEmail: (email: string, password: string) => Promise<{ error?: any; success?: boolean }>
+  signUpWithEmail: (email: string, password: string, userData?: any) => Promise<{ error?: any; success?: boolean }>
   signOut: () => Promise<void>
   setUser: (user: User | null) => void
   setSession: (session: Session | null) => void
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       session: null,
-      loading: false, // Start with false to prevent initial loading state
+      loading: false,
       error: null,
       initialized: false,
 
@@ -104,13 +104,13 @@ export const useAuthStore = create<AuthState>()(
         if (!email || !email.includes('@')) {
           const errorMsg = 'Please enter a valid email address'
           set({ error: errorMsg, loading: false })
-          return { error: { message: errorMsg } }
+          return { error: { message: errorMsg }, success: false }
         }
         
         if (!password) {
           const errorMsg = 'Password is required'
           set({ error: errorMsg, loading: false })
-          return { error: { message: errorMsg } }
+          return { error: { message: errorMsg }, success: false }
         }
         
         try {
@@ -122,17 +122,29 @@ export const useAuthStore = create<AuthState>()(
           if (error) {
             const friendlyMessage = getUserFriendlyErrorMessage(error)
             set({ error: friendlyMessage, loading: false })
-            return { error: { message: friendlyMessage } }
+            return { error: { message: friendlyMessage }, success: false }
           }
 
           console.log('Sign in successful:', data.user?.email)
-          set({ loading: false })
-          // Auth state will be updated by the listener
-          return { error: null }
+          
+          // Update state immediately with the session data
+          set({ 
+            user: data.user, 
+            session: data.session, 
+            loading: false,
+            error: null 
+          })
+
+          // Create user profile if needed
+          if (data.user) {
+            await createUserProfile(data.user)
+          }
+
+          return { error: null, success: true }
         } catch (error: any) {
           const friendlyMessage = getUserFriendlyErrorMessage(error)
           set({ error: friendlyMessage, loading: false })
-          return { error: { message: friendlyMessage } }
+          return { error: { message: friendlyMessage }, success: false }
         }
       },
 
@@ -143,13 +155,13 @@ export const useAuthStore = create<AuthState>()(
         if (!email || !email.includes('@')) {
           const errorMsg = 'Please enter a valid email address'
           set({ error: errorMsg, loading: false })
-          return { error: { message: errorMsg } }
+          return { error: { message: errorMsg }, success: false }
         }
         
         if (!password || password.length < 6) {
           const errorMsg = 'Password must be at least 6 characters long'
           set({ error: errorMsg, loading: false })
-          return { error: { message: errorMsg } }
+          return { error: { message: errorMsg }, success: false }
         }
         
         try {
@@ -164,17 +176,29 @@ export const useAuthStore = create<AuthState>()(
           if (error) {
             const friendlyMessage = getUserFriendlyErrorMessage(error)
             set({ error: friendlyMessage, loading: false })
-            return { error: { message: friendlyMessage } }
+            return { error: { message: friendlyMessage }, success: false }
           }
 
           console.log('Sign up successful:', data.user?.email)
-          set({ loading: false })
-          // Auth state will be updated by the listener
-          return { error: null }
+          
+          // Update state immediately with the session data
+          set({ 
+            user: data.user, 
+            session: data.session, 
+            loading: false,
+            error: null 
+          })
+
+          // Create user profile if needed
+          if (data.user) {
+            await createUserProfile(data.user)
+          }
+
+          return { error: null, success: true }
         } catch (error: any) {
           const friendlyMessage = getUserFriendlyErrorMessage(error)
           set({ error: friendlyMessage, loading: false })
-          return { error: { message: friendlyMessage } }
+          return { error: { message: friendlyMessage }, success: false }
         }
       },
 
